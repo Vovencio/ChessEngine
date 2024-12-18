@@ -1,0 +1,7 @@
+#BlueJ class context
+comment0.params=tastatur
+comment0.target=Keyboard(sum.kern.Tastatur)
+comment1.params=
+comment1.target=java.util.List\ update()
+comment1.text=\r\n\ @return\ Array\ of\ all\ pressed\ keys\ in\ the\ frame.\r\n
+numComments=2

@@ -1,0 +1,27 @@
+#BlueJ class context
+comment0.params=
+comment0.target=Main()
+comment1.params=
+comment1.target=sum.kern.Bildschirm\ getBildschirm()
+comment2.params=
+comment2.target=sum.kern.Stift\ getStift()
+comment3.params=
+comment3.target=sum.kern.Tastatur\ getTastatur()
+comment4.params=input
+comment4.target=int\ handleInput(java.lang.Character)
+comment4.text=\r\n\ Handle\ input\ for\ a\ keypress.\r\n\ 0\ \=\ Normal\ Function.\r\n\ 1\ \=\ Keyboard\ exit.\r\n\ 2\ \=\ Unknown\ Key.\r\n
+comment5.params=
+comment5.target=void\ render()
+comment5.text=\r\n\ Render\ Everything.\r\n
+comment6.params=
+comment6.target=int\ update()
+comment6.text=\r\n\ Frame\ update\ and\ renderer.\r\n\ @return\ Error\ code\ or\ 0\ for\ normal\ function.\r\n
+comment7.params=
+comment7.target=int\ main()
+comment7.text=\r\n\ Main\ method.\r\n
+comment8.params=err
+comment8.target=java.lang.String\ exitCodeString(int)
+comment8.text=\r\n\ @return\ Error\ code\ for\ input.\r\n
+comment9.params=x\ y\ size
+comment9.target=void\ drawSquare(int,\ int,\ int)
+numComments=10
