@@ -15,7 +15,8 @@ public class Main
 
     // Animation Duration
     double animationTimer = 0;
-    double animationDuration = 5;
+    double animationDuration = 500;
+    double animationProgress = 0;
 
     // Used for Rendering
     private Bildschirm meinBildschirm;
@@ -28,12 +29,15 @@ public class Main
     // Used for Input
     private Tastatur meinTastatur;
     private Keyboard meinKeyboard;
+    private Maus meinMaus;
 
     // Constructor
     public Main()
     {
+        oldTime = System.nanoTime();
         meinBildschirm = new Bildschirm(size, size, true);
         meinStift = new Buntstift();
+        meinMaus = new Maus();
         meinStift.normal();
         meinStift.runter();
         meinStift.setzeFarbe(Farbe.SCHWARZ);
@@ -77,7 +81,23 @@ public class Main
  * Render Everything.
  */
     public void render(){
-        drawSquare(200, 200, 100);
+        int size = 60; // Size of each square on the chessboard
+        int boardSize = 8; // 8x8 chessboard
+
+        // Loop through each row and column to draw the squares
+        for (int row = 0; row < boardSize; row++) {
+            for (int col = 0; col < boardSize; col++) {
+                int x = col * size; // X position of the square
+                int y = row * size; // Y position of the square
+                
+                // Alternate between the two square drawing methods
+                if ((row + col) % 2 == 0) {
+                    drawSquare(x, y, size); // Draw white square
+                } else {
+                    drawSquareAlt(x, y, size); // Draw black square
+                }
+            }
+        }
     }
 
     /**
@@ -86,12 +106,13 @@ public class Main
  */
     public int update(){
         //#region Deltatime update
-        deltaTime = (System.nanoTime() - oldTime) / 1_000_000_000;
+        deltaTime = (System.nanoTime() - oldTime) / 1_000_000;
         oldTime = System.nanoTime();
         //#endregion
 
         // Handle Input
         for (Character item: meinKeyboard.update()){
+
             if (handleInput(item) == 1){
                 return 1;
             }
@@ -99,7 +120,9 @@ public class Main
 
         //#region Update everything
         animationTimer += deltaTime;
-        if (animationTimer > animationDuration) animationTimer = 0;
+        if (animationTimer > animationDuration) {animationTimer = 0;}
+        animationProgress = animationTimer / animationDuration;
+        System.out.println("" + deltaTime);
         //#endregion
 
         //Render everything
@@ -138,15 +161,40 @@ public class Main
     void drawSquare(int x, int y, int size){
         meinStift.hoch();
         meinStift.bewegeBis(x, y);
+        double mx = meinMaus.hPosition(); double my = meinMaus.vPosition();
+        
         for (int dx = x; dx <= x + size; dx++){
-            for (int dy = y; dy <= y + size; dy++){
-                int val = (int) Math.round(((double)(dx - x + dy - y) / (double)(2 * size)) * 255);
-                meinStift.setzeFarbe(Farbe.rgb(val, val, val));
-                meinStift.hoch();
-                meinStift.bewegeBis(dx, dy);
-                meinStift.runter();
-                meinStift.bewegeBis(dx, dy);
-            }
+            int val = clamp((int)Math.round(Math.sin(animationProgress*Math.PI)*255), 0, 255);
+            meinStift.setzeFarbe(Farbe.rgb(val, val, val));
+            meinStift.hoch();
+            meinStift.bewegeBis(dx, y);
+            meinStift.runter();
+            meinStift.bewegeBis(dx, y + size);
+        }
+    }
+    
+    void drawSquareAlt(int x, int y, int size){
+        meinStift.hoch();
+        meinStift.bewegeBis(x, y);
+        double mx = meinMaus.hPosition(); double my = meinMaus.vPosition();
+        
+        for (int dx = x; dx <= x + size; dx++){
+            int val = clamp((int)Math.round(Math.sin((animationProgress+0.5)*Math.PI)*255), 0, 255);
+            meinStift.setzeFarbe(Farbe.rgb(val, val, val));
+            meinStift.hoch();
+            meinStift.bewegeBis(dx, y);
+            meinStift.runter();
+            meinStift.bewegeBis(dx, y + size);
+        }
+    }
+    
+    public int clamp(int value, int min, int max) {
+        if (value < min) {
+            return min;  // Return the minimum value if the input is less than min
+        } else if (value > max) {
+            return max;  // Return the maximum value if the input is greater than max
+        } else {
+            return value;  // Return the original value if it's within the range
         }
     }
 }
