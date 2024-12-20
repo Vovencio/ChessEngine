@@ -1,9 +1,0 @@
-#BlueJ class context
-comment0.target=Keyboard
-comment0.text=\r\n\ @author\ Vladimir\r\n\ @version\ 12/18/2024\r\n
-comment1.params=tastatur
-comment1.target=Keyboard(sum.kern.Tastatur)
-comment2.params=
-comment2.target=java.util.List\ update()
-comment2.text=\r\n\ @return\ Array\ of\ all\ pressed\ keys\ in\ the\ frame.\r\n
-numComments=3
