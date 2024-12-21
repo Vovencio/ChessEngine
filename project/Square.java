@@ -1,5 +1,5 @@
 /**
- * Die Klasse Square beschreibt das Verhalten eines Kastchens auf dem 8x8 Schachbrett
+ * One tile of the 8x8 chess board
  * 
  * @author Vovencio
  * @version 12/20/24
@@ -7,10 +7,9 @@
 public class Square
 {
     //#region Attribute
-    // Koordinaten
-    private byte myIndex;
-    private byte myX;
-    private byte myY;
+    // Coordinates
+    private final byte myX;
+    private final byte myY;
     public byte getX(){
         return myX;
     }
@@ -18,37 +17,34 @@ public class Square
         return myY;
     }
 
-    // Figur
-    private byte myFigur;
-    public boolean istFigur;
+    public boolean isPiece;
 
-    // AmRand
-    public boolean amRandX;
-    public boolean amRandY;
+    // These variables show, whether the tile is on an edge.
+    public final boolean onEdgeX;
+    public final boolean onEdgeY;
 
-    // Team
-    public boolean myTeam;
+    // Defines piece team
+    public boolean isWhite;
     //#endregion
 
     /**
-     * Ersetzt die Figur im Feld.
-     * @param  figur Die Figur, die da sein soll
-     * @implNote 0 = Bauer, 1 = Springer, 2 = Laufer, 3 = Turm, 4 = Dame, 5 = Konig. +6 wenn weiss.
+     * Changes the tile content.
+     * @param  content New content
+     * @implNote 0 = Nothing, 1 = Pawn, 2 = Knight, 3 = Bishop, 4 = Rook, 5 = Queen, 6 = King. +6 when black
      */
-    public void setFigur(byte figur){
-        myFigur = figur;
-        istFigur = myFigur != 0;
-        myTeam = figur > 5;
+    public void setContent(byte content){
+        // Content of the tile
+        isPiece = content != 0;
+        isWhite = content > 6;
     }
 
     public Square(byte x, byte y, byte content)
     {
-        myIndex = (byte) (x + y * 8);
         myX = x; myY = y;
-        setFigur(content);
+        setContent(content);
 
-        // Wenn die Figur am Rand ist, ohne Branching
-        amRandX = (myX == 0) | (myX == 7);
-        amRandY = (myY == 0) | (myY == 7);
+        // Calculating onEdge
+        onEdgeX = (myX == 0) | (myX == 7);
+        onEdgeY = (myY == 0) | (myY == 7);
     }
 }
