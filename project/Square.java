@@ -1,50 +1,111 @@
 /**
- * One tile of the 8x8 chess board
- * 
+ * Represents a single tile on an 8x8 chessboard.
+ *
  * @author Vovencio
  * @version 12/20/24
  */
-public class Square
-{
-    //#region Attribute
-    // Coordinates
-    private final byte myX;
-    private final byte myY;
-    public byte getX(){
-        return myX;
+public class Square {
+
+    //#region Attributes
+
+    // Coordinates of the tile
+    private final byte x;
+    private final byte y;
+
+    // Indicates if the tile contains a chess piece
+    private boolean hasPiece;
+
+    // Indicates if the tile's piece is part of the white team (true) or black team (false)
+    private boolean isWhite;
+
+    // Edge indicators
+    private final boolean onEdgeX;
+    private final boolean onEdgeY;
+
+    //#endregion
+
+    //#region Getters
+
+    /**
+     * @return the X-coordinate of the square.
+     */
+    public byte getX() {
+        return x;
     }
-    public byte getY(){
-        return myY;
+
+    /**
+     * @return the Y-coordinate of the square.
+     */
+    public byte getY() {
+        return y;
     }
 
-    public boolean isPiece;
+    /**
+     * @return whether this square contains a piece.
+     */
+    public boolean hasPiece() {
+        return hasPiece;
+    }
 
-    // These variables show, whether the tile is on an edge.
-    public final boolean onEdgeX;
-    public final boolean onEdgeY;
+    /**
+     * @return whether the piece on this square belongs to the white team.
+     */
+    public boolean isWhiteTeam() {
+        return isWhite;
+    }
 
-    // Defines piece team
-    public boolean isWhite;
+    /**
+     * @return whether this square is on the left or right edge of the board.
+     */
+    public boolean isOnEdgeX() {
+        return onEdgeX;
+    }
+
+    /**
+     * @return whether this square is on the top or bottom edge of the board.
+     */
+    public boolean isOnEdgeY() {
+        return onEdgeY;
+    }
+
     //#endregion
 
     /**
-     * Changes the tile content.
-     * @param  content New content
-     * @implNote 0 = Nothing, 1 = Pawn, 2 = Knight, 3 = Bishop, 4 = Rook, 5 = Queen, 6 = King. +6 when black
+     * Updates the content of the square.
+     *
+     * @param content New content to set (0 = Empty, 1 = Pawn, ..., 6 = King; +6 for black pieces)
      */
-    public void setContent(byte content){
-        // Content of the tile
-        isPiece = content != 0;
-        isWhite = content > 6;
+    public void setContent(byte content) {
+        hasPiece = content != 0;
+        isWhite = content <= 6 && content != 0; // White pieces are 1-6; black are 7-12
     }
 
-    public Square(byte x, byte y, byte content)
-    {
-        myX = x; myY = y;
+    /**
+     * Constructs a new Square object.
+     *
+     * @param x       X-coordinate of the square (0-7)
+     * @param y       Y-coordinate of the square (0-7)
+     * @param content Initial content of the square
+     */
+    public Square(byte x, byte y, byte content) {
+        this.x = x;
+        this.y = y;
         setContent(content);
 
-        // Calculating onEdge
-        onEdgeX = (myX == 0) | (myX == 7);
-        onEdgeY = (myY == 0) | (myY == 7);
+        // Determine edge positions
+        this.onEdgeX = (x == 0) | (x == 7);
+        this.onEdgeY = (y == 0) | (y == 7);
+    }
+
+    /**
+     * @return a string representation of the square's state.
+     */
+    @Override
+    public String toString() {
+        String position = String.format("Square (%d, %d)", x, y);
+        String pieceInfo = hasPiece
+                ? String.format(", contains a %s piece", isWhite ? "white" : "black")
+                : ", is empty";
+        return position + pieceInfo;
     }
 }
