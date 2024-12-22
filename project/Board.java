@@ -65,15 +65,16 @@ public class Board {
      * @return The character representing the piece type (e.g., P, N, B, R, Q, K).
      */
     private String getPieceType(Square square) {
-        byte content = (byte) (square.get); // Example content
-        return switch (content % 6) {
+        byte pieceType = (byte) (square.getContent() > 6 ? square.getContent() - 6 : square.getContent()); // Normalize black content
+        return switch (pieceType) {
+            case 0 -> "-"; // Empty
             case 1 -> "P"; // Pawn
             case 2 -> "N"; // Knight
             case 3 -> "B"; // Bishop
             case 4 -> "R"; // Rook
             case 5 -> "Q"; // Queen
-            case 0 -> "K"; // King
-            default -> "?";
+            case 6 -> "K"; // King
+            default -> "?"; // Unknown content
         };
     }
 

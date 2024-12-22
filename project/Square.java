@@ -80,9 +80,10 @@ public class Square {
     /**
      * Updates the content of the square.
      *
-     * @param content New content to set (0 = Empty, 1 = Pawn, ..., 6 = King; +6 for black pieces)
+     * @param content New content to set (0 = Empty, one for each of these in the following order: P, N, B, R, Q, K; +6 for black pieces)
      */
     public void setContent(byte content) {
+        this.content = content;
         hasPiece = content != 0;
         isWhite = content <= 6 && content != 0; // White pieces are 1-6; black are 7-12
     }
