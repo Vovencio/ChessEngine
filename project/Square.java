@@ -12,6 +12,9 @@ public class Square {
     private final byte x;
     private final byte y;
 
+    // The content of the tile, a.k.a. the piece, which is there
+    private byte content;
+
     // Indicates if the tile contains a chess piece
     private boolean hasPiece;
 
@@ -66,6 +69,10 @@ public class Square {
      */
     public boolean isOnEdgeY() {
         return onEdgeY;
+    }
+
+    public byte getContent() {
+        return content;
     }
 
     //#endregion
