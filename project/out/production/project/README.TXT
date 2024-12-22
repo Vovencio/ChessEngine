@@ -1,7 +1,4 @@
 This project is my lazily-done Chess-engine, which should beat your asses :3
- Author: Vovencio
- Version: 12/22/24
-
 
 Notes for my demented self:
 - The figures are represented by bytes in increasing order of value: P, N, B, R, Q, K.

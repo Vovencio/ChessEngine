@@ -1,5 +1,5 @@
 /**
- * Represents a single tile on an 8x8 chessboard.
+ * Represents a single tile on a chessboard.
  *
  * @author Vovencio
  * @version 12/20/24

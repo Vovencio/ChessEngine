@@ -1,0 +1,11 @@
+#BlueJ class context
+comment0.params=
+comment0.target=byte\ getX()
+comment1.params=
+comment1.target=byte\ getY()
+comment2.params=figur
+comment2.target=void\ setFigur(byte)
+comment2.text=\r\n\ Ersetzt\ die\ Figur\ im\ Feld.\r\n\ @param\ \ figur\ Die\ Figur,\ die\ da\ sein\ soll\r\n\ @implNote\ 0\ \=\ Bauer,\ 1\ \=\ Springer,\ 2\ \=\ Laufer,\ 3\ \=\ Turm,\ 4\ \=\ Dame,\ 5\ \=\ Konig.\ +6\ wenn\ weiss.\r\n
+comment3.params=x\ y\ content
+comment3.target=Square(byte,\ byte,\ byte)
+numComments=4

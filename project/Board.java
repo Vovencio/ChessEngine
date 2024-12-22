@@ -1,8 +1,11 @@
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Represents a chessboard consisting of 8x8 squares.
  *
  * @author Vovencio
- * @version 12/20/24
+ * @version 12/22/24
  */
 public class Board {
 
@@ -51,11 +54,12 @@ public class Board {
                 Square square = squares[x][y];
                 String content = square.hasPiece()
                         ? (square.isWhiteTeam() ? "W" : "B") + getPieceType(square)
-                        : ".";
+                        : "--";
                 System.out.print(content + " ");
             }
             System.out.println();
         }
+        System.out.println();
     }
 
     /**
@@ -94,5 +98,20 @@ public class Board {
             setSquareContent(x, (byte) 0, pieceOrder[x]); // White pieces
             setSquareContent(x, (byte) 7, (byte) (pieceOrder[x] + 6)); // Black pieces
         }
+    }
+
+
+    public List<Move> getPossibleMoves(){
+        return new ArrayList<Move>();
+    }
+
+    /**
+     * Plays a move on the chessboard. This method does not prove the move's correctness.
+     *
+     * @param move The move, which should be played.
+     */
+    public void playMove(Move move) {
+        setSquareContent(move.toPositionX(), move.toPositionY(), getSquare(move.fromPositionX(), move.fromPositionY()).getContent());
+        setSquareContent(move.fromPositionX(), move.fromPositionY(), (byte) 0);
     }
 }
