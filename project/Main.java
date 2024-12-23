@@ -4,20 +4,20 @@ import java.util.Scanner;
  * Main class, where everything is sewed together.
  *
  * @author Vovencio
- * @version 12/22/24
+ * @version 12/23/24
  */
 public class Main {
-    private static Board mainBoard;
+    private static Position mainPosition;
 
     public static void main(String[] args) {
-        mainBoard = new Board();
+        mainPosition = new Position();
         Scanner scanner = new Scanner(System.in);
-        mainBoard.setupInitialBoard();
-        mainBoard.printBoard();
+        mainPosition.setupInitialBoard();
+        mainPosition.printBoard();
         String input = scanner.nextLine();
 
         playMoveFromNotation(input);
-        mainBoard.printBoard();
+        mainPosition.printBoard();
     }
 
     // Helper to validate coordinates
@@ -46,8 +46,8 @@ public class Main {
             }
 
             // Play the move
-            Move move = new Move(startX, startY, endX, endY);
-            mainBoard.playMove(move);
+            Move move = new NormalMove(startX, startY, endX, endY);
+            mainPosition.playMove(move);
 
             System.out.println("Move played: " + move);
 

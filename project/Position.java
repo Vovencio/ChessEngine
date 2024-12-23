@@ -1,21 +1,31 @@
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Arrays;
 
 /**
  * Represents a chessboard consisting of 8x8 squares.
  *
  * @author Vovencio
- * @version 12/22/24
+ * @version 12/23/24
  */
-public class Board {
+public class Position {
 
     // 8x8 grid of squares
-    private final Square[][] squares = new Square[8][8];
+    private Square[][] squares = new Square[8][8];
+
+    // Arrays of all coordinates of certain pieces
+    private ArrayList<byte[]> whitePieces = new ArrayList<>();
+    private ArrayList<byte[]> blackPieces = new ArrayList<>();
+    private ArrayList<byte[]> pieces = new ArrayList<>();
+
+    // King positions, so that they must not be searched for
+    private byte[] kingPosWhite = new byte[2];
+    private byte[] kingPosBlack = new byte[2];
 
     /**
      * Initializes the board with empty squares.
      */
-    public Board() {
+    public Position() {
         for (byte x = 0; x < 8; x++) {
             for (byte y = 0; y < 8; y++) {
                 squares[x][y] = new Square(x, y, (byte) 0); // Initialize as empty
@@ -32,6 +42,36 @@ public class Board {
      */
     public void setSquareContent(byte x, byte y, byte content) {
         squares[x][y].setContent(content);
+
+        updatePieceLists(x, y, content);
+        // Update White King Position
+        if (content == 6) {
+            kingPosWhite[0] = x; kingPosWhite[1] = y;
+        }
+        else if (content == 12) {
+            kingPosBlack[0] = x; kingPosBlack[1] = y;
+        }
+    }
+
+    private void updatePieceLists(byte x, byte y, byte content) {
+        byte[] position = {x, y};
+
+        // Remove the given position from all lists.
+        whitePieces.removeIf(pos -> Arrays.equals(pos, position));
+        blackPieces.removeIf(pos -> Arrays.equals(pos, position));
+        pieces.removeIf(pos -> Arrays.equals(pos, position));
+
+        // Add the position to the correct list based on the content
+        if (content > 0) { // Not empty
+            if (content < 7) { // White Pieces
+                whitePieces.add(position);
+                pieces.add(position);
+                return;
+            } // Black Pieces
+            blackPieces.add(position);
+            pieces.add(position);
+        }
+        // If content == 0, it is empty and should not be added.
     }
 
     /**
@@ -52,8 +92,8 @@ public class Board {
         for (int y = 7; y >= 0; y--) { // Print from top to bottom (chessboard perspective)
             for (int x = 0; x < 8; x++) {
                 Square square = squares[x][y];
-                String content = square.hasPiece()
-                        ? (square.isWhiteTeam() ? "W" : "B") + getPieceType(square)
+                String content = (square.hasPiece() != 0)
+                        ? ((square.isWhiteTeam() == 1) ? "W" : "B") + getPieceType(square)
                         : "--";
                 System.out.print(content + " ");
             }
@@ -101,8 +141,36 @@ public class Board {
     }
 
 
-    public List<Move> getPossibleMoves(){
-        return new ArrayList<Move>();
+    public List<Move> getPossibleMovesBoard(){
+        return new ArrayList<>();
+    }
+
+    public List<Move> getPossibleMovesTile(byte x, byte y){
+        List<Move> moves = new ArrayList<>();
+
+        switch (getSquare(x, y).getContent()){
+            case 0:
+                System.out.println("Checking an empty square, this should not be happening...");
+                break;
+                // White pawn
+            case 1:
+                // First Double Move
+                if (y < 6) {
+                    if (getSquare(x, (byte) (y + 1)).hasPiece() == 0) {
+                        // Normal Move
+                        moves.add(new NormalMove(x, y, x, (byte) (y + 1)));
+                        if (y == 1 & getSquare(x, (byte) (y + 1)).hasPiece() == 0) {
+                            moves.add(new NormalMove(x, y, x, (byte) (y + 1)));
+                        }
+                    }
+                }
+
+                break;
+            default:
+                System.out.printf("Unknown piece type %d :(%n", getSquare(x, y).getContent());
+        }
+
+        return moves;
     }
 
     /**
@@ -111,7 +179,6 @@ public class Board {
      * @param move The move, which should be played.
      */
     public void playMove(Move move) {
-        setSquareContent(move.toPositionX(), move.toPositionY(), getSquare(move.fromPositionX(), move.fromPositionY()).getContent());
-        setSquareContent(move.fromPositionX(), move.fromPositionY(), (byte) 0);
+        move.Play(this);
     }
 }

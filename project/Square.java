@@ -16,10 +16,10 @@ public class Square {
     private byte content;
 
     // Indicates if the tile contains a chess piece
-    private boolean hasPiece;
+    private byte hasPiece;
 
     // Indicates if the tile's piece is part of the white team (true) or black team (false)
-    private boolean isWhite;
+    private byte isWhite;
 
     // Edge indicators
     private final boolean onEdgeX;
@@ -46,14 +46,14 @@ public class Square {
     /**
      * @return whether this square contains a piece.
      */
-    public boolean hasPiece() {
+    public byte hasPiece() {
         return hasPiece;
     }
 
     /**
      * @return whether the piece on this square belongs to the white team.
      */
-    public boolean isWhiteTeam() {
+    public byte isWhiteTeam() {
         return isWhite;
     }
 
@@ -84,8 +84,9 @@ public class Square {
      */
     public void setContent(byte content) {
         this.content = content;
-        hasPiece = content != 0;
-        isWhite = content <= 6 && content != 0; // White pieces are 1-6; black are 7-12
+        // Every value besides 0 results in a 1
+        hasPiece = (byte) ((content != 0) ? ((content < 7) ? 1 : 2) : 0);
+        isWhite = (byte) ((content <= 6 && content != 0) ? 1 : 0); // White pieces are 1-6; black are 7-12
     }
 
     /**
@@ -111,8 +112,8 @@ public class Square {
     @Override
     public String toString() {
         String position = String.format("Square (%d, %d)", x, y);
-        String pieceInfo = hasPiece
-                ? String.format(", contains a %s piece", isWhite ? "white" : "black")
+        String pieceInfo = (hasPiece == 0)
+                ? String.format(", contains a %s piece", (isWhite == 0) ? "white" : "black")
                 : ", is empty";
         return position + pieceInfo;
     }
