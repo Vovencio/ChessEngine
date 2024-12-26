@@ -13,13 +13,19 @@ public class NormalMove extends Move{
      * @param toPositionX   The X position where the piece should go.
      * @param toPositionY   The Y position where the piece should go.
      */
-    public NormalMove(byte fromPositionX, byte fromPositionY, byte toPositionX, byte toPositionY) {
+    public NormalMove(byte fromPositionX, byte fromPositionY, byte toPositionX, byte toPositionY byte ) {
         super(fromPositionX, fromPositionY, toPositionX, toPositionY);
     }
 
     @Override
     public void Play(Position position) {
-        position.setSquareContent(getFromPositionX(), getToPositionY(), position.getSquare(getToPositionX(), getFromPositionY()).getContent());
+        position.setSquareContent(getToPositionX(), getToPositionY(), position.getSquare(getFromPositionX(), getFromPositionY()).getContent());
+        position.setSquareContent(getFromPositionX(), getFromPositionY(), (byte) 0);
+    }
+
+    @Override
+    public void Reverse(Position position) {
+        position.setSquareContent(getToPositionX(), getToPositionY(), position.getSquare(getFromPositionX(), getFromPositionY()).getContent());
         position.setSquareContent(getFromPositionX(), getFromPositionY(), (byte) 0);
     }
 }

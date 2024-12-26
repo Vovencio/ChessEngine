@@ -8,6 +8,8 @@ public abstract class Move {
     private final byte fromPositionY;
     private final byte toPositionX;
     private final byte toPositionY;
+    private final byte fromPiece;
+    private final byte toPiece;
 
     /**
      * Constructs a Move object with the given positions.
@@ -17,11 +19,13 @@ public abstract class Move {
      * @param toPositionX   The X position where the piece should go.
      * @param toPositionY   The Y position where the piece should go.
      */
-    public Move(byte fromPositionX, byte fromPositionY, byte toPositionX, byte toPositionY) {
+    public Move(byte fromPositionX, byte fromPositionY, byte toPositionX, byte toPositionY, byte fromPiece, byte toPiece) {
         this.fromPositionX = fromPositionX;
         this.fromPositionY = fromPositionY;
         this.toPositionX = toPositionX;
         this.toPositionY = toPositionY;
+        this.fromPiece = fromPiece;
+        this.toPiece = toPiece;
     }
 
     // Getters for the positions (optional, depending on use case)
@@ -45,4 +49,9 @@ public abstract class Move {
      * Abstract method to play the move. Must be implemented by subclasses.
      */
     public abstract void Play(Position position);
+
+    /**
+     * Abstract method to play the move. Must be implemented by subclasses.
+     */
+    public abstract void Reverse(Position position);
 }

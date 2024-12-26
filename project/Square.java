@@ -24,6 +24,7 @@ public class Square {
     // Edge indicators
     private final boolean onEdgeX;
     private final boolean onEdgeY;
+    private final boolean onEdge;
 
     //#endregion
 
@@ -44,7 +45,7 @@ public class Square {
     }
 
     /**
-     * @return whether this square contains a piece.
+     * @return 0 when empty, 1 when white, 2 when black.
      */
     public byte hasPiece() {
         return hasPiece;
@@ -69,6 +70,10 @@ public class Square {
      */
     public boolean isOnEdgeY() {
         return onEdgeY;
+    }
+
+    public boolean isOnEdge() {
+        return onEdge;
     }
 
     public byte getContent() {
@@ -104,6 +109,7 @@ public class Square {
         // Determine edge positions
         this.onEdgeX = (x == 0) | (x == 7);
         this.onEdgeY = (y == 0) | (y == 7);
+        onEdge = onEdgeX | onEdgeY;
     }
 
     /**
