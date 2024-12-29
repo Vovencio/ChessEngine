@@ -11,6 +11,16 @@ public abstract class Move {
     private final byte fromPiece;
     private final byte toPiece;
 
+    // Metadata for proper function
+    protected final boolean isActiveWhite;
+    protected final byte halfMoveClock;
+    protected final byte moveCounter;
+    protected final byte[] enPassant;
+    protected final boolean canWhiteCastleQueen;
+    protected final boolean canWhiteCastleKing;
+    protected final boolean canBlackCastleQueen;
+    protected final boolean canBlackCastleKing;
+
     /**
      * Constructs a Move object with the given positions.
      *
@@ -19,13 +29,29 @@ public abstract class Move {
      * @param toPositionX   The X position where the piece should go.
      * @param toPositionY   The Y position where the piece should go.
      */
-    public Move(byte fromPositionX, byte fromPositionY, byte toPositionX, byte toPositionY, byte fromPiece, byte toPiece) {
+    public Move(byte fromPositionX, byte fromPositionY, byte toPositionX, byte toPositionY, byte fromPiece, byte toPiece, boolean isActiveWhite, byte halfMoveClock, byte moveCounter, byte[] enPassant, boolean canWhiteCastleQueen, boolean canWhiteCastleKing, boolean canBlackCastleQueen, boolean canBlackCastleKing) {
         this.fromPositionX = fromPositionX;
         this.fromPositionY = fromPositionY;
         this.toPositionX = toPositionX;
         this.toPositionY = toPositionY;
         this.fromPiece = fromPiece;
         this.toPiece = toPiece;
+        this.isActiveWhite = isActiveWhite;
+        this.halfMoveClock = halfMoveClock;
+        this.moveCounter = moveCounter;
+        this.enPassant = enPassant;
+        this.canWhiteCastleQueen = canWhiteCastleQueen;
+        this.canWhiteCastleKing = canWhiteCastleKing;
+        this.canBlackCastleQueen = canBlackCastleQueen;
+        this.canBlackCastleKing = canBlackCastleKing;
+    }
+
+    public byte getToPiece(){
+        return toPiece;
+    }
+
+    public byte getFromPiece(){
+        return fromPiece;
     }
 
     // Getters for the positions (optional, depending on use case)

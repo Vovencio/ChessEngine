@@ -1,6 +1,5 @@
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Arrays;
 
 /**
  * Represents a chessboard consisting of 8x8 squares.
@@ -14,10 +13,87 @@ public class Position {
     // 8x8 grid of squares
     private Square[][] squares = new Square[8][8];
 
+    // Metadata for proper function
+    private boolean isActiveWhite = true;
+    private byte halfMoveClock = 0;
+    private byte moveCounter = 0;
+    private byte[] enPassant = {-1, -1};
+    private boolean canWhiteCastleQueen = true;
+    private boolean canWhiteCastleKing = true;
+    private boolean canBlackCastleQueen = true;
+    private boolean canBlackCastleKing = true;
+
     // King positions, so that they must not be searched for
     private byte[] kingPosWhite = new byte[2];
     private byte[] kingPosBlack = new byte[2];
 
+    //#endregion
+
+    //#region Getters and Setters
+
+    public boolean isActiveWhite() {
+        return isActiveWhite;
+    }
+
+    public void setActiveWhite(boolean activeWhite) {
+        isActiveWhite = activeWhite;
+    }
+
+    public byte getHalfMoveClock() {
+        return halfMoveClock;
+    }
+
+    public void setHalfMoveClock(byte halfMoveClock) {
+        this.halfMoveClock = halfMoveClock;
+    }
+
+    public byte getMoveCounter() {
+        return moveCounter;
+    }
+
+    public void setMoveCounter(byte moveCounter) {
+        this.moveCounter = moveCounter;
+    }
+
+    public byte[] getEnPassant() {
+        return enPassant;
+    }
+
+    public void setEnPassant(byte[] enPassant) {
+        this.enPassant = enPassant;
+    }
+
+    public boolean isCanWhiteCastleQueen() {
+        return canWhiteCastleQueen;
+    }
+
+    public void setCanWhiteCastleQueen(boolean canWhiteCastleQueen) {
+        this.canWhiteCastleQueen = canWhiteCastleQueen;
+    }
+
+    public boolean isCanWhiteCastleKing() {
+        return canWhiteCastleKing;
+    }
+
+    public void setCanWhiteCastleKing(boolean canWhiteCastleKing) {
+        this.canWhiteCastleKing = canWhiteCastleKing;
+    }
+
+    public boolean isCanBlackCastleQueen() {
+        return canBlackCastleQueen;
+    }
+
+    public void setCanBlackCastleQueen(boolean canBlackCastleQueen) {
+        this.canBlackCastleQueen = canBlackCastleQueen;
+    }
+
+    public boolean isCanBlackCastleKing() {
+        return canBlackCastleKing;
+    }
+
+    public void setCanBlackCastleKing(boolean canBlackCastleKing) {
+        this.canBlackCastleKing = canBlackCastleKing;
+    }
     //#endregion
 
     /**
@@ -194,7 +270,20 @@ public class Position {
     }
 
     //#region Get possible moves
-    private void addMove(){}
+
+    public boolean isLegalMove(Move move) {
+        boolean isWhiteTeam = move.getFromPiece() < 7;
+        byte[] kingPos = isWhiteTeam ? kingPosWhite : kingPosBlack;
+
+        playMove(move);
+        boolean isLegal = !isAttacked(kingPos[0], kingPos[1], isWhiteTeam);
+        reverseMove(move);
+        return isLegal;
+    }
+
+    private void addMove(List<Move> moves, Move move){
+        if (isLegalMove(move)) moves.add(move);
+    }
 
     private void addMovesPawn(byte x, byte y, List<Move> moves, boolean isWhite) {
         byte moveDir = (byte) (isWhite ? 1 : -1);
@@ -205,21 +294,21 @@ public class Position {
         // Normal move
         if (isNotDevelopment) {
             if (getSquare(x, (byte) (y + moveDir)).hasPiece() == 0) {
-                moves.add(new NormalMove(x, y, x, (byte) (y + moveDir)));
+                addMove(moves, new NormalMove(x, y, x, (byte) (y + moveDir), this));
                 // Double move
                 if (y == startRow & getSquare(x, (byte) (y + moveDir + moveDir)).hasPiece() == 0) {
-                    moves.add(new NormalMove(x, y, x, (byte) (y + moveDir + moveDir)));
+                    addMove(moves, new NormalMove(x, y, x, (byte) (y + moveDir + moveDir), this));
                 }
             }
             // Capture
             if (x < 7) {
                 if (getSquare((byte) (x+1), (byte) (y + moveDir)).hasPiece() == enemy) {
-                    moves.add(new NormalMove(x, y, (byte) (x+1), (byte) (y + moveDir)));
+                    addMove(moves, new NormalMove(x, y, (byte) (x+1), (byte) (y + moveDir), this));
                 }
             }
             if (x > 0 ) {
                 if (getSquare((byte) (x-1), (byte) (y + moveDir)).hasPiece() == enemy) {
-                    moves.add(new NormalMove(x, y, (byte) (x-1), (byte) (y + moveDir)));
+                    addMove(moves, new NormalMove(x, y, (byte) (x-1), (byte) (y + moveDir), this));
                 }
             }
         }
@@ -245,11 +334,11 @@ public class Position {
             if (isValidSquare(newX, newY)) {
                 Square targetSquare = getSquare(newX, newY);
                 if (targetSquare.hasPiece() == 0) {
-                    moves.add(new NormalMove(x, y, newX, newY));
+                    addMove(moves, new NormalMove(x, y, newX, newY, this));
                 }
                 // Capture
                 else if (targetSquare.hasPiece() == enemy) {
-                    moves.add(new NormalMove(x, y, newX, newY));
+                    addMove(moves, new NormalMove(x, y, newX, newY, this));
                 }
             }
         }
@@ -280,11 +369,11 @@ public class Position {
                 Square targetSquare = getSquare(newX, newY);
                 if (targetSquare.hasPiece() == 0) {
                     // Empty square - normal move
-                    moves.add(new NormalMove(x, y, newX, newY));
+                    addMove(moves, new NormalMove(x, y, newX, newY, this));
                 } else {
                     // Stop if it's an opponent piece (capture and stop movement)
                     if (targetSquare.hasPiece() == enemy) {
-                        moves.add(new NormalMove(x, y, newX, newY));
+                        addMove(moves, new NormalMove(x, y, newX, newY, this));
                     }
                     break; // Stop if there's any piece (opponent or ally)
                 }
@@ -317,11 +406,11 @@ public class Position {
                 Square targetSquare = getSquare(newX, newY);
                 if (targetSquare.hasPiece() == 0) {
                     // Empty square - normal move
-                    moves.add(new NormalMove(x, y, newX, newY));
+                    addMove(moves, new NormalMove(x, y, newX, newY, this));
                 } else {
                     // Stop if it's an opponent piece (capture and stop movement)
                     if (targetSquare.hasPiece() == enemy) {
-                        moves.add(new NormalMove(x, y, newX, newY));
+                        addMove(moves, new NormalMove(x, y, newX, newY, this));
                     }
                     break; // Stop if there's any piece (opponent or ally)
                 }
@@ -354,11 +443,11 @@ public class Position {
                 Square targetSquare = getSquare(newX, newY);
                 if (targetSquare.hasPiece() == 0) {
                     // Empty square - normal move
-                    moves.add(new NormalMove(x, y, newX, newY));
+                    addMove(moves, new NormalMove(x, y, newX, newY, this));
                 } else {
                     // Stop if it's an opponent piece (capture and stop movement)
                     if (targetSquare.hasPiece() == enemy) {
-                        moves.add(new NormalMove(x, y, newX, newY));
+                        addMove(moves, new NormalMove(x, y, newX, newY, this));
                     }
                     break; // Stop if there's any piece (opponent or ally)
                 }
@@ -382,11 +471,11 @@ public class Position {
             if (isValidSquare(newX, newY)) {
                 Square targetSquare = getSquare(newX, newY);
                 if (targetSquare.hasPiece() == 0) {
-                    moves.add(new NormalMove(x, y, newX, newY));
+                    addMove(moves, new NormalMove(x, y, newX, newY, this));
                 }
                 // Capture
                 else if (targetSquare.hasPiece() == enemy) {
-                    moves.add(new NormalMove(x, y, newX, newY));
+                    addMove(moves, new NormalMove(x, y, newX, newY, this));
                 }
             }
         }
@@ -493,7 +582,7 @@ public class Position {
         return false;
     }
 
-    private boolean checkSlidingThreat(byte x, byte y, byte enemyTeam, byte[][] directions, byte specificPiece, byte queen) {
+    private boolean checkSlidingThreat(byte x, byte y, byte[][] directions, byte specificPiece, byte queen) {
         for (byte[] dir : directions) {
             byte nx = x;
             byte ny = y;
@@ -514,8 +603,6 @@ public class Position {
     }
 
     public boolean isAttacked(byte x, byte y, boolean isWhiteTeam) {
-        byte enemyTeam = (byte) (isWhiteTeam ? 2 : 1); // Opponent's "hasPiece" value
-
         // Enemy piece IDs based on team
         byte enemyPawn = (byte) (isWhiteTeam ? 7 : 1);
         byte enemyKnight = (byte) (isWhiteTeam ? 8 : 2);
@@ -545,11 +632,11 @@ public class Position {
 
         // Check for Bishop/Queen threats (Diagonals)
         byte[][] bishopDirections = {{1, 1}, {-1, -1}, {1, -1}, {-1, 1}};
-        if (checkSlidingThreat(x, y, enemyTeam, bishopDirections, enemyBishop, enemyQueen)) return true;
+        if (checkSlidingThreat(x, y, bishopDirections, enemyBishop, enemyQueen)) return true;
 
         // Check for Rook/Queen threats (Rows & Columns)
         byte[][] rookDirections = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
-        if (checkSlidingThreat(x, y, enemyTeam, rookDirections, enemyRook, enemyQueen)) return true;
+        if (checkSlidingThreat(x, y, rookDirections, enemyRook, enemyQueen)) return true;
 
         // Check for King threats
         return offsetThreat(x, y, kingOffsets, enemyKing);
@@ -564,6 +651,14 @@ public class Position {
      * @param move The move, which should be played.
      */
     public void playMove(Move move) {
+        if (!isActiveWhite) moveCounter += 1;
+        enPassant = new byte[] {-1, -1};
+        isActiveWhite = !isActiveWhite;
+        halfMoveClock += 1;
         move.Play(this);
+    }
+
+    public void reverseMove(Move move) {
+        move.Reverse(this);
     }
 }

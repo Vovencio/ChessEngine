@@ -14,3 +14,6 @@ Notes for my demented self:
 > This is made to make baking easier
 - Squares have move lists, so that I can update all pieces locally and must not update the whole board
 > This allows me to evaluate the position more positionally ;)
+- The En Passant byte[2] gives the square behind the double-pushed pawn, which is reset after every move.
+- The -CanCastle boolean[2] arrays show, where a team can castle-
+> Index 0 represents the Queen-side and 1 represents the king-side.

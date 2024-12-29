@@ -89,7 +89,7 @@ public class Main {
             }
 
             // Play the move
-            Move move = new NormalMove(startX, startY, endX, endY);
+            Move move = new NormalMove(startX, startY, endX, endY, mainPosition);
             mainPosition.playMove(move);
 
             System.out.println("Move played: " + input.substring(5));

@@ -4,7 +4,7 @@
  * @version 12/23/24
  */
 
-public class NormalMove extends Move{
+public class DoublePushMove extends Move{
     /**
      * Constructs a Move object with the given positions.
      *
@@ -15,7 +15,7 @@ public class NormalMove extends Move{
      * @param position  The position.
      */
 
-    public NormalMove(byte fromPositionX, byte fromPositionY, byte toPositionX, byte toPositionY, Position position) {
+    public DoublePushMove(byte fromPositionX, byte fromPositionY, byte toPositionX, byte toPositionY, Position position) {
         super(fromPositionX, fromPositionY, toPositionX, toPositionY,
                 position.getSquare(fromPositionX, fromPositionY).getContent(),
                 position.getSquare(toPositionX, toPositionY).getContent(), position.isActiveWhite(),
@@ -28,20 +28,7 @@ public class NormalMove extends Move{
     public void Play(Position position) {
         position.setSquareContent(getToPositionX(), getToPositionY(), getFromPiece());
         position.setSquareContent(getFromPositionX(), getFromPositionY(), (byte) 0);
-
-        // If a king moves, they cannot castle
-        if (getFromPiece() == 6) {position.setCanWhiteCastleKing(false); position.setCanWhiteCastleQueen(false);}
-        if (getFromPiece() == 12) {position.setCanBlackCastleKing(false); position.setCanBlackCastleQueen(false);}
-        // If a rook moves, the side cannot be castled
-        if (getFromPiece() == 4){
-            if (getFromPositionX() == 0 && getFromPositionY() == 0) position.setCanWhiteCastleQueen(false);
-            else if (getFromPositionX() == 7 && getFromPositionY() == 0) position.setCanWhiteCastleKing(false);
-        }
-        if (getFromPiece() == 10){
-
-            if (getFromPositionX() == 0 && getFromPositionY() == 7) position.setCanBlackCastleQueen(false);
-            else if (getFromPositionX() == 7 && getFromPositionY() == 7) position.setCanBlackCastleKing(false);
-        }
+        
     }
 
     @Override
