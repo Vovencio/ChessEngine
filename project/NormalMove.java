@@ -57,4 +57,14 @@ public class NormalMove extends Move{
         position.setCanBlackCastleQueen(canBlackCastleQueen);
         position.setCanBlackCastleKing(canBlackCastleKing);
     }
+
+    @Override
+    public String toString(){
+        char startFile = (char) (getFromPositionX() + 'a');
+        char endFile = (char) (getToPositionX() + 'a');
+        int startRank = getFromPositionY() + 1;
+        int endRank = getToPositionY() + 1;
+
+        return "" + pieceSymbol(getFromPiece()) + startFile + startRank + endFile + endRank;
+    }
 }

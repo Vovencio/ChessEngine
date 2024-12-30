@@ -4,7 +4,7 @@
  * @version 12/23/24
  */
 
-public class DoublePushMove extends Move{
+public class EnPassant extends Move{
     /**
      * Constructs a Move object with the given positions.
      *
@@ -15,7 +15,7 @@ public class DoublePushMove extends Move{
      * @param position  The position.
      */
 
-    public DoublePushMove(byte fromPositionX, byte fromPositionY, byte toPositionX, byte toPositionY, Position position) {
+    public EnPassant(byte fromPositionX, byte fromPositionY, byte toPositionX, byte toPositionY, Position position) {
         super(fromPositionX, fromPositionY, toPositionX, toPositionY,
                 position.getSquare(fromPositionX, fromPositionY).getContent(),
                 position.getSquare(toPositionX, toPositionY).getContent(), position.isActiveWhite(),
@@ -28,14 +28,16 @@ public class DoublePushMove extends Move{
     public void Play(Position position) {
         position.setSquareContent(getToPositionX(), getToPositionY(), getFromPiece());
         position.setSquareContent(getFromPositionX(), getFromPositionY(), (byte) 0);
-        if (getFromPiece() == 1) position.setEnPassant(new byte[] {getFromPositionX(), 2});
-        else position.setEnPassant(new byte[] {getFromPositionX(), 5});
+        position.setSquareContent(getToPositionX(), getFromPositionY(), (byte) 0);
     }
 
     @Override
     public void Reverse(Position position) {
         position.setSquareContent(getToPositionX(), getToPositionY(), getToPiece());
         position.setSquareContent(getFromPositionX(), getFromPositionY(), getFromPiece());
+
+        if (getFromPiece() == 1) position.setSquareContent(getToPositionX(), getFromPositionY(), (byte) 7);
+        else position.setSquareContent(getToPositionX(), getFromPositionY(), (byte) 1);
         position.setActiveWhite(isActiveWhite);
         position.setHalfMoveClock(halfMoveClock);
         position.setMoveCounter(moveCounter);
@@ -53,6 +55,6 @@ public class DoublePushMove extends Move{
         int startRank = getFromPositionY() + 1;
         int endRank = getToPositionY() + 1;
 
-        return "" + pieceSymbol(getFromPiece()) + startFile + startRank + endFile + endRank;
+        return "enp-" + pieceSymbol(getFromPiece()) + startFile + startRank + endFile + endRank;
     }
 }

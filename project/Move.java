@@ -80,4 +80,26 @@ public abstract class Move {
      * Abstract method to play the move. Must be implemented by subclasses.
      */
     public abstract void Reverse(Position position);
+
+    @Override
+    public abstract String toString();
+
+    public static char pieceSymbol(byte piece) {
+        return switch (piece) {
+            case 1 -> 'P'; // White Pawn
+            case 2 -> 'N'; // White Knight
+            case 3 -> 'B'; // White Bishop
+            case 4 -> 'R'; // White Rook
+            case 5 -> 'Q'; // White Queen
+            case 6 -> 'K'; // White King
+            case 7 -> 'p'; // Black Pawn
+            case 8 -> 'n'; // Black Knight
+            case 9 -> 'b'; // Black Bishop
+            case 10 -> 'r'; // Black Rook
+            case 11 -> 'q'; // Black Queen
+            case 12 -> 'k'; // Black King
+            default -> ' '; // Default for empty
+        };
+    }
+
 }

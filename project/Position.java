@@ -1,4 +1,5 @@
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -138,10 +139,34 @@ public class Position {
     }
 
     /**
+     * Converts castling rights into a string representation.
+     *
+     * @return A string representing the current castling rights.
+     */
+    public String getCastlingRights() {
+        StringBuilder castlingRights = new StringBuilder();
+
+        if (canWhiteCastleKing) castlingRights.append("K");
+        if (canWhiteCastleQueen) castlingRights.append("Q");
+        if (canBlackCastleKing) castlingRights.append("k");
+        if (canBlackCastleQueen) castlingRights.append("q");
+
+        // If no castling rights exist, return "-"
+        if (castlingRights.isEmpty()) {
+            return "-";
+        }
+
+        return castlingRights.toString();
+    }
+
+    /**
      * Displays the board's current state as a simple text representation.
      */
     public void printBoard() {
+        System.out.println(getCastlingRights());
+        System.out.println("   a  b  c  d  e  f  g  h"); // Column headers
         for (int y = 7; y >= 0; y--) { // Print from top to bottom (chessboard perspective)
+            System.out.print((y + 1) + " "); // Row number
             for (int x = 0; x < 8; x++) {
                 Square square = squares[x][y];
                 String content = (square.hasPiece() != 0)
@@ -149,8 +174,9 @@ public class Position {
                         : "--";
                 System.out.print(content + " ");
             }
-            System.out.println();
+            System.out.println((y + 1)); // Row number on the right
         }
+        System.out.println("   a  b  c  d  e  f  g  h"); // Column headers
         System.out.println();
     }
 
@@ -194,15 +220,19 @@ public class Position {
             }
         }
 
-        // Print the modified board
+        // Print the modified board with labels
+        System.out.println("   a  b  c  d  e  f  g  h"); // Column headers
         for (int row = 7; row >= 0; row--) { // Print from top to bottom (chessboard perspective)
+            System.out.print((row + 1) + " "); // Row number
             for (int col = 0; col < 8; col++) {
                 System.out.print(boardRepresentation[col][row] + " ");
             }
-            System.out.println();
+            System.out.println((row + 1)); // Row number on the right
         }
+        System.out.println("   a  b  c  d  e  f  g  h"); // Column headers
         System.out.println();
     }
+
 
     /**
      * Maps piece content to a type for display purposes.
@@ -284,6 +314,9 @@ public class Position {
     private void addMove(List<Move> moves, Move move){
         if (isLegalMove(move)) moves.add(move);
     }
+    private void addMoveNoCheck(List<Move> moves, Move move){
+        moves.add(move);
+    }
 
     private void addMovesPawn(byte x, byte y, List<Move> moves, boolean isWhite) {
         byte moveDir = (byte) (isWhite ? 1 : -1);
@@ -297,7 +330,7 @@ public class Position {
                 addMove(moves, new NormalMove(x, y, x, (byte) (y + moveDir), this));
                 // Double move
                 if (y == startRow & getSquare(x, (byte) (y + moveDir + moveDir)).hasPiece() == 0) {
-                    addMove(moves, new NormalMove(x, y, x, (byte) (y + moveDir + moveDir), this));
+                    addMove(moves, new DoublePushMove(x, y, x, (byte) (y + moveDir + moveDir), this));
                 }
             }
             // Capture
@@ -309,6 +342,19 @@ public class Position {
             if (x > 0 ) {
                 if (getSquare((byte) (x-1), (byte) (y + moveDir)).hasPiece() == enemy) {
                     addMove(moves, new NormalMove(x, y, (byte) (x-1), (byte) (y + moveDir), this));
+                }
+            }
+            // En passant
+            if (x < 7) {
+                if (getSquare((byte) (x+1), (byte) (y)).hasPiece() == enemy &&
+                        (x+1) == enPassant[0] && (y + moveDir) == enPassant[1]) {
+                    addMove(moves, new EnPassant(x, y, (byte) (x+1), (byte) (y + moveDir), this));
+                }
+            }
+            if (x > 1) {
+                if (getSquare((byte) (x-1), (byte) (y)).hasPiece() == enemy &&
+                        (x-1) == enPassant[0] && (y + moveDir) == enPassant[1]) {
+                    addMove(moves, new EnPassant(x, y, (byte) (x-1), (byte) (y + moveDir), this));
                 }
             }
         }
@@ -479,6 +525,37 @@ public class Position {
                 }
             }
         }
+
+        // Castling
+        if (isWhite) {
+            if (canWhiteCastleKing || canWhiteCastleQueen) {
+                // We assume that the king is at 4, 0
+                if (!isAttacked((byte) 4, (byte) 0, true)) {
+                    if (canWhiteCastleKing) {
+                        if (getSquare((byte) 5, (byte) 0).hasPiece() == 0 &&
+                                getSquare((byte) 6, (byte) 0).hasPiece() == 0) {
+                            if (!isAttacked((byte) 5, (byte) 0, true)
+                                    && !isAttacked((byte) 6, (byte) 0, true)){
+                                addMoveNoCheck(moves, new CastleMove((byte) 4, (byte) 0, (byte) 6, (byte) 0, this));
+                            }
+                        }
+                    }
+                    if (canWhiteCastleQueen) {
+                        if (getSquare((byte) 1, (byte) 0).hasPiece() == 0 &&
+                                getSquare((byte) 2, (byte) 0).hasPiece() == 0 &&
+                                getSquare((byte) 3, (byte) 0).hasPiece() == 0) {
+                            if (!isAttacked((byte) 2, (byte) 0, true)
+                                    && !isAttacked((byte) 3, (byte) 0, true)){
+                                addMoveNoCheck(moves, new CastleMove((byte) 4, (byte) 0, (byte) 2, (byte) 0, this));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        else {
+
+        }
     }
 
     /**
@@ -602,6 +679,11 @@ public class Position {
         return false;
     }
 
+    /**
+    * Checks whether a square is attacked by a team.
+    *
+    * @param isWhiteTeam True to check, if it's attacked by black, false for white.
+    * */
     public boolean isAttacked(byte x, byte y, boolean isWhiteTeam) {
         // Enemy piece IDs based on team
         byte enemyPawn = (byte) (isWhiteTeam ? 7 : 1);

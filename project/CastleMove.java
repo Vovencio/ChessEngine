@@ -4,7 +4,7 @@
  * @version 12/23/24
  */
 
-public class DoublePushMove extends Move{
+public class CastleMove extends Move{
     /**
      * Constructs a Move object with the given positions.
      *
@@ -15,7 +15,7 @@ public class DoublePushMove extends Move{
      * @param position  The position.
      */
 
-    public DoublePushMove(byte fromPositionX, byte fromPositionY, byte toPositionX, byte toPositionY, Position position) {
+    public CastleMove(byte fromPositionX, byte fromPositionY, byte toPositionX, byte toPositionY, Position position) {
         super(fromPositionX, fromPositionY, toPositionX, toPositionY,
                 position.getSquare(fromPositionX, fromPositionY).getContent(),
                 position.getSquare(toPositionX, toPositionY).getContent(), position.isActiveWhite(),
@@ -26,16 +26,47 @@ public class DoublePushMove extends Move{
 
     @Override
     public void Play(Position position) {
+        // Rook value for the board
+        byte rook = (byte) ((getFromPiece() == 6) ? 4 : 10);
+
+        // Place the king correctly
         position.setSquareContent(getToPositionX(), getToPositionY(), getFromPiece());
         position.setSquareContent(getFromPositionX(), getFromPositionY(), (byte) 0);
-        if (getFromPiece() == 1) position.setEnPassant(new byte[] {getFromPositionX(), 2});
-        else position.setEnPassant(new byte[] {getFromPositionX(), 5});
+
+        // Queen-side Castling
+        if (getToPositionX() == 2) {
+            position.setSquareContent((byte) 0, getFromPositionY(), (byte) 0);
+            position.setSquareContent((byte) 3, getFromPositionY(), rook);
+        } // King-side Castling
+        else {
+            position.setSquareContent((byte) 7, getFromPositionY(), (byte) 0);
+            position.setSquareContent((byte) 5, getFromPositionY(), rook);
+        }
+
+        // The player should not be able to castle again.
+        if (getFromPiece() == 6) {position.setCanWhiteCastleKing(false); position.setCanWhiteCastleQueen(false);}
+        else {position.setCanBlackCastleKing(false); position.setCanBlackCastleQueen(false);}
     }
 
     @Override
     public void Reverse(Position position) {
+        // Rook value for the board
+        byte rook = (byte) ((getFromPiece() == 6) ? 4 : 10);
+
+        // Reset King
         position.setSquareContent(getToPositionX(), getToPositionY(), getToPiece());
         position.setSquareContent(getFromPositionX(), getFromPositionY(), getFromPiece());
+
+        // Queen-side Castling
+        if (getToPositionX() == 2) {
+            position.setSquareContent((byte) 3, getFromPositionY(), (byte) 0);
+            position.setSquareContent((byte) 0, getFromPositionY(), rook);
+        } // King-side Castling
+        else {
+            position.setSquareContent((byte) 5, getFromPositionY(), (byte) 0);
+            position.setSquareContent((byte) 7, getFromPositionY(), rook);
+        }
+
         position.setActiveWhite(isActiveWhite);
         position.setHalfMoveClock(halfMoveClock);
         position.setMoveCounter(moveCounter);
@@ -48,11 +79,13 @@ public class DoublePushMove extends Move{
 
     @Override
     public String toString(){
-        char startFile = (char) (getFromPositionX() + 'a');
-        char endFile = (char) (getToPositionX() + 'a');
-        int startRank = getFromPositionY() + 1;
-        int endRank = getToPositionY() + 1;
+        String moveString = "O-O";
 
-        return "" + pieceSymbol(getFromPiece()) + startFile + startRank + endFile + endRank;
+        // Queen-side castling
+        if (getToPositionX() == 2) moveString = "O-O-O";
+
+        if (getFromPiece() == 12) moveString = moveString.toLowerCase();
+
+        return moveString;
     }
 }
