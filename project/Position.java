@@ -32,6 +32,14 @@ public class Position {
 
     //#region Getters and Setters
 
+    public byte[] getKingPosWhite() {
+        return kingPosWhite;
+    }
+
+    public byte[] getKingPosBlack() {
+        return kingPosBlack;
+    }
+
     public boolean isActiveWhite() {
         return isActiveWhite;
     }
@@ -860,4 +868,77 @@ public class Position {
             default -> throw new IllegalArgumentException("Invalid FEN character: " + c);
         };
     }
+
+    public String generateFEN() {
+        StringBuilder fen = new StringBuilder();
+
+        // 1. Board state
+        for (byte y = 7; y >= 0; y--) {
+            byte emptyCount = 0;
+            for (byte x = 0; x < 8; x++) {
+                byte piece = getSquare(x, y).getContent();
+                if (piece == 0) {
+                    emptyCount++;
+                } else {
+                    if (emptyCount > 0) {
+                        fen.append(emptyCount);
+                        emptyCount = 0;
+                    }
+                    fen.append(pieceToFenChar(piece));
+                }
+            }
+            if (emptyCount > 0) {
+                fen.append(emptyCount);
+            }
+            if (y > 0) {
+                fen.append('/');
+            }
+        }
+        fen.append(" ");
+
+        // 2. Active color
+        fen.append(isActiveWhite ? "w" : "b");
+        fen.append(" ");
+
+        // 3. Castling rights
+        fen.append(getCastlingRights());
+        fen.append(" ");
+
+        // 4. En passant
+        if (enPassant[0] == -1 && enPassant[1] == -1) {
+            fen.append("-");
+        } else {
+            fen.append((char) (enPassant[0] + 'a'));
+            fen.append((char) (enPassant[1] + '1'));
+        }
+        fen.append(" ");
+
+        // 5. Half move clock
+        fen.append(halfMoveClock);
+        fen.append(" ");
+
+        // 6. Full move number
+        fen.append(moveCounter);
+
+        return fen.toString();
+    }
+
+    private char pieceToFenChar(byte piece) {
+        return switch (piece) {
+            case 1 -> 'P';  // White Pawn
+            case 2 -> 'N';  // White Knight
+            case 3 -> 'B';  // White Bishop
+            case 4 -> 'R';  // White Rook
+            case 5 -> 'Q';  // White Queen
+            case 6 -> 'K';  // White King
+            case 7 -> 'p';  // Black Pawn
+            case 8 -> 'n';  // Black Knight
+            case 9 -> 'b';  // Black Bishop
+            case 10 -> 'r'; // Black Rook
+            case 11 -> 'q'; // Black Queen
+            case 12 -> 'k'; // Black King
+            default -> throw new IllegalArgumentException("Invalid piece code: " + piece);
+        };
+    }
+
 }
