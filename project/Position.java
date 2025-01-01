@@ -17,7 +17,7 @@ public class Position {
     // Metadata for proper function
     private boolean isActiveWhite = true;
     private byte halfMoveClock = 0;
-    private byte moveCounter = 0;
+    private int moveCounter = 0;
     private byte[] enPassant = {-1, -1};
     private boolean canWhiteCastleQueen = true;
     private boolean canWhiteCastleKing = true;
@@ -48,11 +48,11 @@ public class Position {
         this.halfMoveClock = halfMoveClock;
     }
 
-    public byte getMoveCounter() {
+    public int getMoveCounter() {
         return moveCounter;
     }
 
-    public void setMoveCounter(byte moveCounter) {
+    public void setMoveCounter(int moveCounter) {
         this.moveCounter = moveCounter;
     }
 
@@ -329,7 +329,7 @@ public class Position {
             if (getSquare(x, (byte) (y + moveDir)).hasPiece() == 0) {
                 addMove(moves, new NormalMove(x, y, x, (byte) (y + moveDir), this));
                 // Double move
-                if (y == startRow & getSquare(x, (byte) (y + moveDir + moveDir)).hasPiece() == 0) {
+                if (y == startRow && getSquare(x, (byte) (y + moveDir + moveDir)).hasPiece() == 0) {
                     addMove(moves, new DoublePushMove(x, y, x, (byte) (y + moveDir + moveDir), this));
                 }
             }
@@ -351,7 +351,7 @@ public class Position {
                     addMove(moves, new EnPassant(x, y, (byte) (x+1), (byte) (y + moveDir), this));
                 }
             }
-            if (x > 1) {
+            if (x > 0) {
                 if (getSquare((byte) (x-1), (byte) (y)).hasPiece() == enemy &&
                         (x-1) == enPassant[0] && (y + moveDir) == enPassant[1]) {
                     addMove(moves, new EnPassant(x, y, (byte) (x-1), (byte) (y + moveDir), this));
@@ -359,8 +359,27 @@ public class Position {
             }
         }
         else {
-            // Implement Developments later (only queen and knight)
-            System.out.println("Developments not made. Sorry :(");
+            byte[] possibleDevelopments = isWhite ? new byte[] {2,3,4,5} : new byte[] {8,9,10,11};
+            if (getSquare(x, (byte) (y + moveDir)).hasPiece() == 0) {
+                for (byte development : possibleDevelopments) {
+                    addMove(moves, new DevelopmentMove(x, y, x, (byte) (y + moveDir), this, development));
+                }
+            }
+            // Capture
+            if (x < 7) {
+                if (getSquare((byte) (x+1), (byte) (y + moveDir)).hasPiece() == enemy) {
+                    for (byte development : possibleDevelopments) {
+                        addMove(moves, new DevelopmentMove(x, y, (byte) (x + 1), (byte) (y + moveDir), this, development));
+                    }
+                }
+            }
+            if (x > 0 ) {
+                if (getSquare((byte) (x-1), (byte) (y + moveDir)).hasPiece() == enemy) {
+                    for (byte development : possibleDevelopments) {
+                        addMove(moves, new DevelopmentMove(x, y, (byte) (x - 1), (byte) (y + moveDir), this, development));
+                    }
+                }
+            }
         }
     }
 
@@ -554,7 +573,30 @@ public class Position {
             }
         }
         else {
-
+            if (canBlackCastleKing || canBlackCastleQueen) {
+                // We assume that the king is at 4, 7
+                if (!isAttacked((byte) 4, (byte) 7, false)) {
+                    if (canBlackCastleKing) {
+                        if (getSquare((byte) 5, (byte) 7).hasPiece() == 0 &&
+                                getSquare((byte) 6, (byte) 7).hasPiece() == 0) {
+                            if (!isAttacked((byte) 5, (byte) 7, false)
+                                    && !isAttacked((byte) 6, (byte) 7, false)){
+                                addMoveNoCheck(moves, new CastleMove((byte) 4, (byte) 7, (byte) 6, (byte) 7, this));
+                            }
+                        }
+                    }
+                    if (canBlackCastleQueen) {
+                        if (getSquare((byte) 1, (byte) 7).hasPiece() == 0 &&
+                                getSquare((byte) 2, (byte) 7).hasPiece() == 0 &&
+                                getSquare((byte) 3, (byte) 7).hasPiece() == 0) {
+                            if (!isAttacked((byte) 2, (byte) 7, false)
+                                    && !isAttacked((byte) 3, (byte) 7, false)){
+                                addMoveNoCheck(moves, new CastleMove((byte) 4, (byte) 7, (byte) 2, (byte) 7, this));
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -736,11 +778,86 @@ public class Position {
         if (!isActiveWhite) moveCounter += 1;
         enPassant = new byte[] {-1, -1};
         isActiveWhite = !isActiveWhite;
+
+        if (move.getFromPiece() == 1 || move.getFromPiece() == 7 || move.getToPiece() != 0) {
+            halfMoveClock = 0;
+        }
+
         halfMoveClock += 1;
         move.Play(this);
     }
 
     public void reverseMove(Move move) {
         move.Reverse(this);
+    }
+
+    public void loadFEN(String fen) {
+        String[] parts = fen.split(" ");
+        if (parts.length != 6) {
+            throw new IllegalArgumentException("Invalid FEN string.");
+        }
+
+        for (byte x = 0; x < 8; x++) {
+            for (byte y = 0; y < 8; y++) {
+                setSquareContent(x, y, (byte) 0);
+            }
+        }
+
+        // 1. Set up the board squares
+        String[] ranks = parts[0].split("/");
+        for (byte y = 0; y < 8; y++) {
+            byte x = 0;
+            for (char c : ranks[7 - y].toCharArray()) {
+                if (Character.isDigit(c)) {
+                    x += c - '0';
+                } else {
+                    byte piece = fenCharToPiece(c);
+                    setSquareContent((byte) x, (byte) y, piece);
+                    x++;
+                }
+            }
+        }
+
+        // 2. Set active color
+        isActiveWhite = parts[1].equals("w");
+
+        // 3. Set castling rights
+        canWhiteCastleKing = parts[2].contains("K");
+        canWhiteCastleQueen = parts[2].contains("Q");
+        canBlackCastleKing = parts[2].contains("k");
+        canBlackCastleQueen = parts[2].contains("q");
+
+        // 4. Set en passant target square
+        if (parts[3].equals("-")) {
+            enPassant = new byte[]{-1, -1};
+        } else {
+            enPassant = new byte[2];
+            enPassant[0] = (byte) (parts[3].charAt(0) - 'a');
+            enPassant[1] = (byte) (parts[3].charAt(1) - '1');
+        }
+
+        // 5. Set half move clock
+        halfMoveClock = Byte.parseByte(parts[4]);
+
+        // 6. Set full move number
+        moveCounter = Integer.parseInt(parts[5]);
+    }
+
+    private byte fenCharToPiece(char c) {
+        return switch (c) {
+            case 'p' -> 7;  // Black Pawn
+            case 'n' -> 8;  // Black Knight
+            case 'b' -> 9;  // Black Bishop
+            case 'r' -> 10; // Black Rook
+            case 'q' -> 11; // Black Queen
+            case 'k' -> 12; // Black King
+            case 'P' -> 1;  // White Pawn
+            case 'N' -> 2;  // White Knight
+            case 'B' -> 3;  // White Bishop
+            case 'R' -> 4;  // White Rook
+            case 'Q' -> 5;  // White Queen
+            case 'K' -> 6;  // White King
+            default -> throw new IllegalArgumentException("Invalid FEN character: " + c);
+        };
     }
 }
