@@ -102,4 +102,9 @@ public abstract class Move {
         };
     }
 
+    public static boolean isEqual(Move moveA, Move moveB){
+        return moveA.getFromPiece() == moveB.getFromPiece() && moveA.getToPiece() == moveB.getToPiece()
+                && moveA.getFromPositionX() == moveB.getFromPositionX() && moveA.getFromPositionY() == moveB.getFromPositionY()
+                && moveA.getToPositionX() == moveB.getToPositionX() && moveA.getToPositionY() == moveB.getToPositionY();
+    }
 }

@@ -1,5 +1,7 @@
 import java.util.ArrayList;
 import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * Branch class, which demonstrates a chess board.
@@ -9,6 +11,9 @@ import java.util.List;
  */
 
 public class Branch {
+
+    static public int evals;
+
     private double evaluation;
 
     private Move move;
@@ -17,6 +22,12 @@ public class Branch {
     private final Position position;
     private final Engine engine;
     private boolean notDeeper = false;
+
+    public List<Move> getKillerMoves() {
+        return killerMoves;
+    }
+
+    private List<Move> killerMoves = new ArrayList<>();
 
     public int getDepth() {
         return depth;
@@ -51,6 +62,7 @@ public class Branch {
     }
 
     private double evaluate(){
+        evals++;
         position.playMove(move); // Apply the move
         evaluation = engine.evalBoard(); // Evaluate the board after the move
         position.reverseMove(move);
@@ -67,7 +79,35 @@ public class Branch {
         }
         double max = -Double.MAX_VALUE;
 
-        for (Branch child : this.children) {
+        // Killer Branches are getting checked because these caused a cutoff in a sibling position.
+        List<Branch> branchesToCheck = new ArrayList<>();
+
+        if (this.parent != null){
+            if (!parent.getKillerMoves().isEmpty()){
+                List<Branch> killerBranches= new ArrayList<>();
+                List<Branch> normalBranches= new ArrayList<>();
+
+                for (Branch child : this.children){
+                    for (Move killerMove : this.parent.killerMoves){
+                        if (Move.isEqual(child.getMove(), killerMove)){
+                            killerBranches.add(child);
+                            break;
+                        }
+                        else {
+                            normalBranches.add(child);
+                            break;
+                        }
+                    }
+                }
+
+                branchesToCheck.addAll(killerBranches);
+                branchesToCheck.addAll(normalBranches);
+            }
+            else branchesToCheck = children;
+        }
+        else branchesToCheck = children;
+
+        for (Branch child : branchesToCheck) {
             position.playMove(child.getMove());
             double eval = child.mini(alpha, beta);
             position.reverseMove(child.getMove());
@@ -80,6 +120,7 @@ public class Branch {
                 alpha = max;
             }
             if (alpha >= beta) {
+                if (parent != null) this.parent.getKillerMoves().add(child.move);
                 break; // Beta cutoff
             }
         }
@@ -98,7 +139,35 @@ public class Branch {
         }
         double min = Double.MAX_VALUE;
 
-        for (Branch child : children) {
+        // Killer Branches are getting checked because these caused a cutoff in a sibling position.
+        List<Branch> branchesToCheck = new ArrayList<>();
+
+        if (this.parent != null){
+            if (!parent.getKillerMoves().isEmpty()){
+                List<Branch> killerBranches= new ArrayList<>();
+                List<Branch> normalBranches= new ArrayList<>();
+
+                for (Branch child : this.children){
+                    for (Move killerMove : this.parent.killerMoves){
+                        if (Move.isEqual(child.getMove(), killerMove)){
+                            killerBranches.add(child);
+                            break;
+                        }
+                        else {
+                            normalBranches.add(child);
+                            break;
+                        }
+                    }
+                }
+
+                branchesToCheck.addAll(killerBranches);
+                branchesToCheck.addAll(normalBranches);
+            }
+            else branchesToCheck = children;
+        }
+        else branchesToCheck = children;
+
+        for (Branch child : branchesToCheck) {
             position.playMove(child.getMove());
             double eval = child.maxi(alpha, beta);
             position.reverseMove(child.getMove());
@@ -111,6 +180,7 @@ public class Branch {
                 beta = min;
             }
             if (beta <= alpha) {
+                if (parent != null) this.parent.getKillerMoves().add(child.move);
                 break; // Alpha cutoff
             }
         }
@@ -124,6 +194,9 @@ public class Branch {
         // Generate the child branches based on all possible moves if no children exist
         if (children.isEmpty()) {
             List<Move> possibleMoves = position.getPossibleMovesBoard(position.isActiveWhite());
+            if (notDeeper){
+                return;
+            }
             if (possibleMoves.isEmpty()){
                 this.notDeeper = true;
                 byte[] kingPos = position.isActiveWhite() ? position.getKingPosWhite() : position.getKingPosBlack();

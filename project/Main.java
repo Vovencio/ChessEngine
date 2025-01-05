@@ -300,6 +300,8 @@ public class Main {
             Branch best = engine.generateBestMove(4, mainPosition);
             System.out.printf("Best move at depth 4 is " + best.getMove().toString() + ", eval: %.3f" + ".%n", best.getEvaluation());
         }
+
+        System.out.println(Branch.evals);
     }
 
     // Handle the 'execute' command to run multiple commands
