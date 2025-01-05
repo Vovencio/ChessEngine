@@ -6,7 +6,7 @@ import java.util.List;
  * Represents a chessboard consisting of 8x8 squares.
  *
  * @author Vovencio
- * @version 12/23/24
+ * @version 01/01/2024
  */
 public class Position {
 
@@ -171,7 +171,6 @@ public class Position {
      * Displays the board's current state as a simple text representation.
      */
     public void printBoard() {
-        System.out.println(getCastlingRights());
         System.out.println("   a  b  c  d  e  f  g  h"); // Column headers
         for (int y = 7; y >= 0; y--) { // Print from top to bottom (chessboard perspective)
             System.out.print((y + 1) + " "); // Row number
@@ -196,7 +195,7 @@ public class Position {
      */
     public void drawPossibleMoves(byte x, byte y) {
         // Get all possible moves for the given square
-        List<Move> possibleMoves = getPossibleMovesSquare(x, y);
+        List<Move> possibleMoves = getPossibleMovesSquare(x, y, false);
 
         // Create a 2D array for the board state
         String[][] boardRepresentation = new String[8][8];
@@ -291,7 +290,7 @@ public class Position {
                 Square square = squares[x][y];
 
                 if (square.hasPiece() != 0 && square.hasPiece() == (byte) (isWhiteTeam ? 1 : 2)) {
-                    possibleMoves.addAll(getPossibleMovesSquare(x, y));
+                    possibleMoves.addAll(getPossibleMovesSquare(x, y, false));
                 }
             }
         }
@@ -319,14 +318,14 @@ public class Position {
         return isLegal;
     }
 
-    private void addMove(List<Move> moves, Move move){
-        if (isLegalMove(move)) moves.add(move);
+    private void addMove(List<Move> moves, Move move, boolean noCheck){
+        if (isLegalMove(move) || noCheck) moves.add(move);
     }
     private void addMoveNoCheck(List<Move> moves, Move move){
         moves.add(move);
     }
 
-    private void addMovesPawn(byte x, byte y, List<Move> moves, boolean isWhite) {
+    private void addMovesPawn(byte x, byte y, List<Move> moves, boolean isWhite, boolean noCheck) {
         byte moveDir = (byte) (isWhite ? 1 : -1);
         byte startRow = (byte) (isWhite ? 1 : 6);
         byte enemy = (byte) (isWhite ? 2 : 1);
@@ -335,34 +334,34 @@ public class Position {
         // Normal move
         if (isNotDevelopment) {
             if (getSquare(x, (byte) (y + moveDir)).hasPiece() == 0) {
-                addMove(moves, new NormalMove(x, y, x, (byte) (y + moveDir), this));
+                addMove(moves, new NormalMove(x, y, x, (byte) (y + moveDir), this), noCheck);
                 // Double move
                 if (y == startRow && getSquare(x, (byte) (y + moveDir + moveDir)).hasPiece() == 0) {
-                    addMove(moves, new DoublePushMove(x, y, x, (byte) (y + moveDir + moveDir), this));
+                    addMove(moves, new DoublePushMove(x, y, x, (byte) (y + moveDir + moveDir), this), noCheck);
                 }
             }
             // Capture
             if (x < 7) {
                 if (getSquare((byte) (x+1), (byte) (y + moveDir)).hasPiece() == enemy) {
-                    addMove(moves, new NormalMove(x, y, (byte) (x+1), (byte) (y + moveDir), this));
+                    addMove(moves, new NormalMove(x, y, (byte) (x+1), (byte) (y + moveDir), this), noCheck);
                 }
             }
             if (x > 0 ) {
                 if (getSquare((byte) (x-1), (byte) (y + moveDir)).hasPiece() == enemy) {
-                    addMove(moves, new NormalMove(x, y, (byte) (x-1), (byte) (y + moveDir), this));
+                    addMove(moves, new NormalMove(x, y, (byte) (x-1), (byte) (y + moveDir), this), noCheck);
                 }
             }
             // En passant
             if (x < 7) {
                 if (getSquare((byte) (x+1), (byte) (y)).hasPiece() == enemy &&
                         (x+1) == enPassant[0] && (y + moveDir) == enPassant[1]) {
-                    addMove(moves, new EnPassant(x, y, (byte) (x+1), (byte) (y + moveDir), this));
+                    addMove(moves, new EnPassant(x, y, (byte) (x+1), (byte) (y + moveDir), this), noCheck);
                 }
             }
             if (x > 0) {
                 if (getSquare((byte) (x-1), (byte) (y)).hasPiece() == enemy &&
                         (x-1) == enPassant[0] && (y + moveDir) == enPassant[1]) {
-                    addMove(moves, new EnPassant(x, y, (byte) (x-1), (byte) (y + moveDir), this));
+                    addMove(moves, new EnPassant(x, y, (byte) (x-1), (byte) (y + moveDir), this), noCheck);
                 }
             }
         }
@@ -370,28 +369,28 @@ public class Position {
             byte[] possibleDevelopments = isWhite ? new byte[] {2,3,4,5} : new byte[] {8,9,10,11};
             if (getSquare(x, (byte) (y + moveDir)).hasPiece() == 0) {
                 for (byte development : possibleDevelopments) {
-                    addMove(moves, new DevelopmentMove(x, y, x, (byte) (y + moveDir), this, development));
+                    addMove(moves, new DevelopmentMove(x, y, x, (byte) (y + moveDir), this, development), noCheck);
                 }
             }
             // Capture
             if (x < 7) {
                 if (getSquare((byte) (x+1), (byte) (y + moveDir)).hasPiece() == enemy) {
                     for (byte development : possibleDevelopments) {
-                        addMove(moves, new DevelopmentMove(x, y, (byte) (x + 1), (byte) (y + moveDir), this, development));
+                        addMove(moves, new DevelopmentMove(x, y, (byte) (x + 1), (byte) (y + moveDir), this, development), noCheck);
                     }
                 }
             }
             if (x > 0 ) {
                 if (getSquare((byte) (x-1), (byte) (y + moveDir)).hasPiece() == enemy) {
                     for (byte development : possibleDevelopments) {
-                        addMove(moves, new DevelopmentMove(x, y, (byte) (x - 1), (byte) (y + moveDir), this, development));
+                        addMove(moves, new DevelopmentMove(x, y, (byte) (x - 1), (byte) (y + moveDir), this, development), noCheck);
                     }
                 }
             }
         }
     }
 
-    private void addMovesKnight(byte x, byte y, List<Move> moves, boolean isWhite) {
+    private void addMovesKnight(byte x, byte y, List<Move> moves, boolean isWhite, boolean noCheck) {
         byte enemy = (byte) (isWhite ? 2 : 1);
 
         // Possible knight move offsets
@@ -407,17 +406,17 @@ public class Position {
             if (isValidSquare(newX, newY)) {
                 Square targetSquare = getSquare(newX, newY);
                 if (targetSquare.hasPiece() == 0) {
-                    addMove(moves, new NormalMove(x, y, newX, newY, this));
+                    addMove(moves, new NormalMove(x, y, newX, newY, this), noCheck);
                 }
                 // Capture
                 else if (targetSquare.hasPiece() == enemy) {
-                    addMove(moves, new NormalMove(x, y, newX, newY, this));
+                    addMove(moves, new NormalMove(x, y, newX, newY, this), noCheck);
                 }
             }
         }
     }
 
-    private void addMovesBishop(byte x, byte y, List<Move> moves, boolean isWhite) {
+    private void addMovesBishop(byte x, byte y, List<Move> moves, boolean isWhite, boolean noCheck) {
         byte enemy = (byte) (isWhite ? 2 : 1);
 
         // Diagonal directions for bishop movement
@@ -442,11 +441,11 @@ public class Position {
                 Square targetSquare = getSquare(newX, newY);
                 if (targetSquare.hasPiece() == 0) {
                     // Empty square - normal move
-                    addMove(moves, new NormalMove(x, y, newX, newY, this));
+                    addMove(moves, new NormalMove(x, y, newX, newY, this), noCheck);
                 } else {
                     // Stop if it's an opponent piece (capture and stop movement)
                     if (targetSquare.hasPiece() == enemy) {
-                        addMove(moves, new NormalMove(x, y, newX, newY, this));
+                        addMove(moves, new NormalMove(x, y, newX, newY, this), noCheck);
                     }
                     break; // Stop if there's any piece (opponent or ally)
                 }
@@ -454,7 +453,7 @@ public class Position {
         }
     }
 
-    private void addMovesRook(byte x, byte y, List<Move> moves, boolean isWhite) {
+    private void addMovesRook(byte x, byte y, List<Move> moves, boolean isWhite, boolean noCheck) {
         byte enemy = (byte) (isWhite ? 2 : 1);
 
         // Orthogonal movement directions for rook movement
@@ -479,11 +478,11 @@ public class Position {
                 Square targetSquare = getSquare(newX, newY);
                 if (targetSquare.hasPiece() == 0) {
                     // Empty square - normal move
-                    addMove(moves, new NormalMove(x, y, newX, newY, this));
+                    addMove(moves, new NormalMove(x, y, newX, newY, this), noCheck);
                 } else {
                     // Stop if it's an opponent piece (capture and stop movement)
                     if (targetSquare.hasPiece() == enemy) {
-                        addMove(moves, new NormalMove(x, y, newX, newY, this));
+                        addMove(moves, new NormalMove(x, y, newX, newY, this), noCheck);
                     }
                     break; // Stop if there's any piece (opponent or ally)
                 }
@@ -491,7 +490,7 @@ public class Position {
         }
     }
 
-    private void addMovesQueen(byte x, byte y, List<Move> moves, boolean isWhite) {
+    private void addMovesQueen(byte x, byte y, List<Move> moves, boolean isWhite, boolean noCheck) {
         byte enemy = (byte) (isWhite ? 2 : 1);
 
         // Combined movement of Rook and Bishop
@@ -516,11 +515,11 @@ public class Position {
                 Square targetSquare = getSquare(newX, newY);
                 if (targetSquare.hasPiece() == 0) {
                     // Empty square - normal move
-                    addMove(moves, new NormalMove(x, y, newX, newY, this));
+                    addMove(moves, new NormalMove(x, y, newX, newY, this), noCheck);
                 } else {
                     // Stop if it's an opponent piece (capture and stop movement)
                     if (targetSquare.hasPiece() == enemy) {
-                        addMove(moves, new NormalMove(x, y, newX, newY, this));
+                        addMove(moves, new NormalMove(x, y, newX, newY, this), noCheck);
                     }
                     break; // Stop if there's any piece (opponent or ally)
                 }
@@ -528,7 +527,7 @@ public class Position {
         }
     }
 
-    private void addMovesKing(byte x, byte y, List<Move> moves, boolean isWhite) {
+    private void addMovesKing(byte x, byte y, List<Move> moves, boolean isWhite, boolean noCheck) {
         byte enemy = (byte) (isWhite ? 2 : 1);
 
         // Possible king move offsets
@@ -544,11 +543,11 @@ public class Position {
             if (isValidSquare(newX, newY)) {
                 Square targetSquare = getSquare(newX, newY);
                 if (targetSquare.hasPiece() == 0) {
-                    addMove(moves, new NormalMove(x, y, newX, newY, this));
+                    addMove(moves, new NormalMove(x, y, newX, newY, this), noCheck);
                 }
                 // Capture
                 else if (targetSquare.hasPiece() == enemy) {
-                    addMove(moves, new NormalMove(x, y, newX, newY, this));
+                    addMove(moves, new NormalMove(x, y, newX, newY, this), noCheck);
                 }
             }
         }
@@ -614,7 +613,7 @@ public class Position {
      * @param x       X-coordinate of the square (0-7)
      * @param y       Y-coordinate of the square (0-7)
      */
-    public List<Move> getPossibleMovesSquare(byte x, byte y){
+    public List<Move> getPossibleMovesSquare(byte x, byte y, boolean noCheck){
         List<Move> moves = new ArrayList<>();
 
         switch (getSquare(x, y).getContent()){
@@ -623,51 +622,51 @@ public class Position {
                 break;
             // White pawn
             case 1:
-                addMovesPawn(x, y, moves, true);
+                addMovesPawn(x, y, moves, true, noCheck);
                 break;
             // Black pawn
             case 7:
-                addMovesPawn(x, y, moves, false);
+                addMovesPawn(x, y, moves, false, noCheck);
                 break;
             // White Knight
             case 2:
-                addMovesKnight(x, y, moves, true);
+                addMovesKnight(x, y, moves, true, noCheck);
                 break;
             // Black Knight
             case 8:
-                addMovesKnight(x, y, moves, false);
+                addMovesKnight(x, y, moves, false, noCheck);
                 break;
             // White Bishop
             case 3:
-                addMovesBishop(x, y, moves, true);
+                addMovesBishop(x, y, moves, true, noCheck);
                 break;
             // Black Bishop
             case 9:
-                addMovesBishop(x, y, moves, false);
+                addMovesBishop(x, y, moves, false, noCheck);
                 break;
             // White Rook
             case 4:
-                addMovesRook(x, y, moves, true);
+                addMovesRook(x, y, moves, true, noCheck);
                 break;
             // Black Rook
             case 10:
-                addMovesRook(x, y, moves, false);
+                addMovesRook(x, y, moves, false, noCheck);
                 break;
             // White Queen
             case 5:
-                addMovesQueen(x, y, moves, true);
+                addMovesQueen(x, y, moves, true, noCheck);
                 break;
             // Black Queen
             case 11:
-                addMovesQueen(x, y, moves, false);
+                addMovesQueen(x, y, moves, false, noCheck);
                 break;
             // White King
             case 6:
-                addMovesKing(x, y, moves, true);
+                addMovesKing(x, y, moves, true, noCheck);
                 break;
             // Black King
             case 12:
-                addMovesKing(x, y, moves, false);
+                addMovesKing(x, y, moves, false, noCheck);
                 break;
 
             default:
@@ -941,4 +940,76 @@ public class Position {
         };
     }
 
+    public Position flipColor(){
+        Position flippedPosition = new Position();
+
+        // Flip Y and color
+        for (byte x = 0; x < 8; x++){
+            for (byte y = 0; y < 8; y++){
+                flippedPosition.setSquareContent(x, (byte) (7-y), oppositePiece(getSquare(x, y).getContent()));
+            }
+        }
+
+        // Flip active player
+        flippedPosition.setActiveWhite(!isActiveWhite);
+
+        // Flip Castle Rights
+        flippedPosition.setCanBlackCastleKing(canWhiteCastleKing);
+        flippedPosition.setCanBlackCastleQueen(canWhiteCastleQueen);
+        flippedPosition.setCanWhiteCastleKing(canBlackCastleKing);
+        flippedPosition.setCanWhiteCastleQueen(canBlackCastleQueen);
+
+        if (enPassant[0] != -1 && enPassant[1] != -1){
+            // Flip En Passant Y
+            flippedPosition.setEnPassant(new byte[] {enPassant[0], (byte) (7 - enPassant[1])});
+        }
+
+        flippedPosition.setHalfMoveClock(halfMoveClock);
+        flippedPosition.setMoveCounter(moveCounter);
+
+        return flippedPosition;
+    }
+
+    private byte oppositePiece(byte input){
+        if (input == 0) return 0;
+        return (byte) ((input > 6) ? input - 6 : input + 6);
+    }
+
+    public int[] toTrainingData(){
+        Position trainingPosition = (isActiveWhite) ? this : flipColor();
+
+        /*
+        * The following byte array is done as follows:
+        * First 12*64 is the bitboard (768).
+        * The next four are castling rights.
+        * The next two are en passant squares.
+        * The last one is the 50-move clock.
+        * */
+
+        int[] data = new int[775];
+
+        for (byte x = 0; x < 8; x++){
+            for (byte y = 0; y < 8; y++){
+                byte content = trainingPosition.getSquare(x, y).getContent();
+                if (content != 0){
+                    int index = x + y * 8 + 64 * (trainingPosition.getSquare(x, y).getContent() - 1);
+                    data[index] = 1;
+                    if (index > 767){
+                        System.err.println("The training index function ain't cooking..");
+                    }
+                }
+            }
+        }
+
+        if (trainingPosition.canWhiteCastleKing) data[768] = 1;
+        if (trainingPosition.canWhiteCastleQueen) data[769] = 1;
+        if (trainingPosition.canBlackCastleKing) data[770] = 1;
+        if (trainingPosition.canBlackCastleQueen) data[771] = 1;
+
+        data[772] = trainingPosition.getEnPassant()[0]; data[773] = trainingPosition.getEnPassant()[1];
+
+        data[774] = trainingPosition.getHalfMoveClock();
+
+        return data;
+    }
 }

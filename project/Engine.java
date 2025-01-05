@@ -1,3 +1,10 @@
+/**
+ * Engine Class used for all computing.
+ *
+ * @author Vovencio
+ * @version 01/01/2024
+ */
+
 public class Engine {
     public Position getEnginePosition() {
         return enginePosition;
@@ -21,14 +28,14 @@ public class Engine {
     };
 
     public static final double[][] knightBaseValues = {
-            {1.2035294118, 1.3737254902, 1.3737254902, 1.3737254902, 1.3737254902, 1.3737254902, 1.3737254902, 1.2035294118},
-            {1.3737254902, 1.3068627451, 1.4770588235, 1.4770588235, 1.4770588235, 1.4770588235, 1.3068627451, 1.3737254902},
-            {1.3737254902, 1.4770588235, 1.5500000000, 1.5500000000, 1.5500000000, 1.5500000000, 1.4770588235, 1.3737254902},
-            {1.3737254902, 1.4770588235, 1.5500000000, 1.5500000000, 1.5500000000, 1.5500000000, 1.4770588235, 1.3737254902},
-            {1.3737254902, 1.4770588235, 1.5500000000, 1.5500000000, 1.5500000000, 1.5500000000, 1.4770588235, 1.3737254902},
-            {1.3737254902, 1.4770588235, 1.5500000000, 1.5500000000, 1.5500000000, 1.5500000000, 1.4770588235, 1.3737254902},
-            {1.3737254902, 1.3068627451, 1.4770588235, 1.4770588235, 1.4770588235, 1.4770588235, 1.3068627451, 1.3737254902},
-            {1.2035294118, 1.3737254902, 1.3737254902, 1.3737254902, 1.3737254902, 1.3737254902, 1.3737254902, 1.2035294118},
+            {2.9176470588, 3.0027450980, 3.0027450980, 3.0027450980, 3.0027450980, 3.0027450980, 3.0027450980, 2.9176470588},
+            {3.0027450980, 2.9662745098, 3.0513725490, 3.0513725490, 3.0513725490, 3.0513725490, 2.9662745098, 3.0027450980},
+            {3.0027450980, 3.0513725490, 3.1000000000, 3.1000000000, 3.1000000000, 3.1000000000, 3.0513725490, 3.0027450980},
+            {3.0027450980, 3.0513725490, 3.1000000000, 3.1000000000, 3.1000000000, 3.1000000000, 3.0513725490, 3.0027450980},
+            {3.0027450980, 3.0513725490, 3.1000000000, 3.1000000000, 3.1000000000, 3.1000000000, 3.0513725490, 3.0027450980},
+            {3.0027450980, 3.0513725490, 3.1000000000, 3.1000000000, 3.1000000000, 3.1000000000, 3.0513725490, 3.0027450980},
+            {3.0027450980, 2.9662745098, 3.0513725490, 3.0513725490, 3.0513725490, 3.0513725490, 2.9662745098, 3.0027450980},
+            {2.9176470588, 3.0027450980, 3.0027450980, 3.0027450980, 3.0027450980, 3.0027450980, 3.0027450980, 2.9176470588},
     };
 
     public static final double[] knightClosedBonus  = {
@@ -201,90 +208,82 @@ public class Engine {
     }
 
     public double evalPawn(byte x, byte y, boolean isBlack) {
-        double baseValue = isBlack ? -pawnBaseValues[x][y] : pawnBaseValues[x][7-y];
-
+        double baseValue = isBlack ? -pawnBaseValues[y][x] : pawnBaseValues[7-y][x];
         return baseValue;
     }
 
     public double evalKnight(byte x, byte y, boolean isBlack, byte pawns) {
-        final double baseValue = isBlack ? -knightBaseValues[x][y] : knightBaseValues[x][y];
+        final double baseValue = isBlack ? -knightBaseValues[y][x] : knightBaseValues[y][x];
 
-        // Evaluate Move ability
-        // This is 50% of the pieces worth
         final int maxMoves = 8;
-        int moves = enginePosition.getPossibleMovesSquare(x, y).size();
+        int moves = enginePosition.getPossibleMovesSquare(x, y, true).size();
+        double moveAbility = (double) moves / maxMoves;
 
-        double moveAbility = (double) (moves / maxMoves);
-
-        // The knight is better in closed positions, which is evaluated in knightClosedBonus
-        double bonus = isBlack ? -knightClosedBonus[pawns] : knightClosedBonus[pawns];
-
+        double bonus = 0.25 * (isBlack ? -knightClosedBonus[pawns] : knightClosedBonus[pawns]);
         double kingBonus = isBlack ? -kingDistanceBonusBasic[getDistanceToEnemyKing(true, x, y)] :
                 kingDistanceBonusBasic[getDistanceToEnemyKing(false, x, y)];
 
-        return baseValue * moveAbility + baseValue + bonus + kingBonus;
+        return 0.85 * baseValue + 0.15 * baseValue * moveAbility + bonus + kingBonus;
     }
 
     public double evalBishop(byte x, byte y, boolean isBlack, byte pawns, byte whitePawns, byte blackPawns) {
-        final double baseValue = isBlack ? -1.8 : 1.8;
+        final double baseValue = isBlack ? -3.6 : 3.6;
 
-        // Evaluate Move ability
-        // This is 50% of the pieces worth
         final int maxMoves = 13;
-        int moves = enginePosition.getPossibleMovesSquare(x, y).size();
+        int moves = enginePosition.getPossibleMovesSquare(x, y, true).size();
+        double moveAbility = (double) moves / maxMoves;
 
-        double moveAbility = (double) (moves / maxMoves);
-
-        // The Bishop is better in closed positions, which is bishopOpenBonus in bishopOpenBonus
-        double bonus = isBlack ? -bishopOpenBonus[pawns] : bishopOpenBonus[pawns];
-
+        double bonus = 0.25 * (isBlack ? -bishopOpenBonus[pawns] : bishopOpenBonus[pawns]);
         byte sameColoredPawns = (((x + y) % 2) == 0) ? blackPawns : whitePawns;
+        double colorBonus = 0.25 * (isBlack ? -bishopColorBonus[sameColoredPawns] : bishopColorBonus[sameColoredPawns]);
 
-        double colorBonus = isBlack ? -bishopColorBonus[sameColoredPawns] : bishopColorBonus[sameColoredPawns];
-
-        return baseValue * moveAbility + baseValue + bonus + colorBonus;
+        return 0.85 * baseValue + 0.15 * baseValue * moveAbility + bonus + colorBonus;
     }
 
     public double evalRook(byte x, byte y, boolean isBlack, byte pawns) {
         final double baseValue = isBlack ? -5.5 : 5.5;
 
-        // Evaluate Move ability
-        // This is 50% of the pieces worth
         final int maxMoves = 14;
-        int moves = enginePosition.getPossibleMovesSquare(x, y).size();
+        int moves = enginePosition.getPossibleMovesSquare(x, y, true).size();
+        double moveAbility = (double) moves / maxMoves;
 
-        double moveAbility = (double) (moves / maxMoves);
-
-        // The rook much is better in open positions, which is evaluated in rookOpenBonus
-        double bonus = isBlack ? -rookOpenBonus[pawns] : rookOpenBonus[pawns];
-
+        double bonus = 0.25 * (isBlack ? -rookOpenBonus[pawns] : rookOpenBonus[pawns]);
         double kingBonus = isBlack ? -kingDistanceBonusBasic[getDistanceToEnemyKing(true, x, y)] :
                 kingDistanceBonusBasic[getDistanceToEnemyKing(false, x, y)];
 
-        return baseValue * moveAbility + baseValue + bonus + kingBonus;
+        return 0.85 * baseValue + 0.15 * baseValue * moveAbility + bonus + kingBonus;
     }
 
     public double evalQueen(byte x, byte y, boolean isBlack, byte pawns) {
         final double baseValue = isBlack ? -9.5 : 9.5;
 
-        // Evaluate Move ability
-        // This is 25% of the pieces worth
         final int maxMoves = 27;
-        int moves = enginePosition.getPossibleMovesSquare(x, y).size();
+        int moves = enginePosition.getPossibleMovesSquare(x, y, true).size();
+        double moveAbility = (double) moves / maxMoves;
 
-        double moveAbility = (double) (moves / maxMoves);
-
-        // The Queen much is better in open positions, which is evaluated in rookOpenBonus
-        double bonus = isBlack ? -rookOpenBonus[pawns] : rookOpenBonus[pawns];
-
+        double bonus = 0.25 * (isBlack ? -rookOpenBonus[pawns] : rookOpenBonus[pawns]);
         double kingBonus = isBlack ? -kingDistanceBonusQueen[getDistanceToEnemyKing(true, x, y)] :
                 kingDistanceBonusQueen[getDistanceToEnemyKing(false, x, y)];
 
-        return baseValue * moveAbility * 0.25 + baseValue * 0.75 + bonus + kingBonus;
+        return 0.85 * baseValue + 0.15 * baseValue * moveAbility + bonus + kingBonus;
     }
 
     public int getDistanceToEnemyKing(boolean isBlack, byte x, byte y) {
         byte[] kingPos = isBlack ? enginePosition.getKingPosWhite() : enginePosition.getKingPosBlack();
         return Math.abs(kingPos[0] - x) + Math.abs(kingPos[1] - y);
+    }
+
+    public Branch generateBestMove(int depth, Position position){
+        enginePosition.loadFEN(position.generateFEN());
+        Branch root = new Branch(enginePosition, this);
+
+        for (int x = 0; x < depth; x++) {
+            root.generateChildren();
+        }
+
+        if (position.isActiveWhite()) root.maxi(-Double.MAX_VALUE, Double.MAX_VALUE);
+        else root.mini(-Double.MAX_VALUE, Double.MAX_VALUE);
+
+        return root.getBestChild();
     }
 }
