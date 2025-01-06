@@ -8,6 +8,7 @@ import java.io.*;
 // import java.util.*;
 import org.json.JSONObject;
 import java.util.Properties;
+import java.util.Arrays;
 
 /**
  * Main class, where everything is sewed together.
@@ -21,15 +22,24 @@ public class Main {
     private static EngineOld engine;
     private static double[][][] evalTable;
 
+    static String evalsFilePath;
+    static String historyFilePath;
+
     public static void main(String[] args) {
         // loadConfig();
         mainPosition = new Position();
         engine = new EngineOld();
 
+        initializeHistoryTable();
+
         Scanner scanner = new Scanner(System.in);
 
         // Set up the initial board
         mainPosition.setupInitialBoard();
+
+        printLines();
+        System.out.println("Setup Complete!");
+        printLines();
 
         System.out.println("╋╋╋┏┓   Cherry Engine V. 0.1");
         System.out.println("╋╋╋┃┃   Made by Vladimir K.");
@@ -50,9 +60,9 @@ public class Main {
 
             if (input.equalsIgnoreCase("exit")) {
                 System.out.println("Exiting the game. Have a great day, sweetheart!");
+                saveHistoryTable();
                 break;
             }
-
             if (input.equalsIgnoreCase("help")) {
                 showHelp();
             } else if (input.startsWith("execute ")) {
@@ -64,9 +74,12 @@ public class Main {
         }
     }
 
-    public static void loadConfig(){
+    public static void handleExit(){
+        saveHistoryTable();
+    }
+
+    public static void loadConfig() {
         String configFilePath = "config.properties";
-        String evalsFilePath;
 
         // Try to load the config file
         Properties config = new Properties();
@@ -76,27 +89,39 @@ public class Main {
                 try (FileReader reader = new FileReader(configFile)) {
                     config.load(reader);
                     evalsFilePath = config.getProperty("evalsFilePath");
+                    historyFilePath = config.getProperty("historyFilePath");
                 }
             } else {
                 evalsFilePath = null;
+                historyFilePath = null;
             }
         } catch (IOException e) {
             System.out.println("Error reading config file: " + e.getMessage());
             evalsFilePath = null;
+            historyFilePath = null;
         }
 
-        // If the path from the config is null or invalid, ask the user
-        File evalsFile = null;
-        if (evalsFilePath == null || !(evalsFile = new File(evalsFilePath)).exists()) {
-            System.out.println("The JSONL file path could not be found.");
-            Scanner scanner = new Scanner(System.in);
-            System.out.print("Please enter the path to the JSONL file: ");
-            evalsFilePath = scanner.nextLine();
-            evalsFile = new File(evalsFilePath);
+        // Load evalTable
+        evalsFilePath = loadFilePath(evalsFilePath, "evalsFilePath", config, configFilePath, "JSONL file for evalTable");
+        loadEvalTable();
 
-            // Save the new path to the config file
+        // Load historyTable
+        historyFilePath = loadFilePath(historyFilePath, "historyFilePath", config, configFilePath, "JSONL file for historyTable");
+        loadHistoryTable();
+    }
+
+    private static String loadFilePath(String filePath, String propertyKey, Properties config, String configFilePath, String prompt) {
+        Scanner scanner = new Scanner(System.in);
+        File file = (filePath != null) ? new File(filePath) : null;
+
+        if (file == null || !file.exists()) {
+            System.out.println("The " + prompt + " could not be found.");
+            System.out.print("Please enter the path: ");
+            filePath = scanner.nextLine();
+            file = new File(filePath);
+
             try (FileWriter writer = new FileWriter(configFilePath)) {
-                config.setProperty("evalsFilePath", evalsFilePath);
+                config.setProperty(propertyKey, filePath);
                 config.store(writer, "Configuration File for JSONL Path");
                 System.out.println("Config file updated with new path!");
             } catch (IOException e) {
@@ -104,12 +129,17 @@ public class Main {
             }
         }
 
-        // Read the JSONL file
+        return filePath;
+    }
+
+    private static void loadEvalTable() {
+        File evalsFile = new File(evalsFilePath);
+
         if (evalsFile.exists()) {
             System.out.println("Reading JSONL file from: " + evalsFilePath);
 
             try (BufferedReader reader = new BufferedReader(new FileReader(evalsFile))) {
-                int layers = 13; // Adjust this if needed
+                int layers = 13;
                 int rows = 8;
                 int cols = 8;
                 evalTable = new double[layers][rows][cols];
@@ -130,12 +160,87 @@ public class Main {
                     layerIndex++;
                 }
 
-                System.out.println("Loaded config successfully!");
+                System.out.println("Loaded evalTable successfully!");
             } catch (IOException e) {
-                System.out.println("Failed to read the JSONL file: " + e.getMessage());
+                System.out.println("Failed to read the JSONL file for evalTable: " + e.getMessage());
             }
         } else {
-            System.out.println("The JSONL file could not be found at the given path.");
+            System.out.println("The JSONL file for evalTable could not be found at the given path.");
+        }
+    }
+
+    private static void loadHistoryTable() {
+        File historyFile = new File(historyFilePath);
+
+        if (historyFile.exists()) {
+            System.out.println("Reading historyTable from: " + historyFilePath);
+
+            try (BufferedReader reader = new BufferedReader(new FileReader(historyFile))) {
+                int layers = 12;
+                int rows = 8;
+                int cols = 8;
+                Branch.historyTable = new int[layers][rows][cols];
+
+                String line;
+                int layerIndex = 0;
+
+                while ((line = reader.readLine()) != null && layerIndex < layers) {
+                    JSONArray jsonLayer = new JSONArray(line);
+
+                    for (int i = 0; i < jsonLayer.length(); i++) {
+                        JSONArray row = jsonLayer.getJSONArray(i);
+                        for (int j = 0; j < row.length(); j++) {
+                            Branch.historyTable[layerIndex][i][j] = row.getInt(j);
+                        }
+                    }
+
+                    layerIndex++;
+                }
+
+                if (layerIndex == 11){
+                    System.out.println("Loaded historyTable successfully!");
+                }
+                else {
+                    System.out.println("HistoryTable seems to be corrupted. Initializing with minimum values.");
+                    initializeHistoryTable();
+                }
+            } catch (IOException e) {
+                System.out.println("Failed to read the JSONL file for historyTable: " + e.getMessage());
+            }
+        } else {
+            System.out.println("The JSONL file for historyTable could not be found. Initializing with minimum values.");
+            initializeHistoryTable();
+        }
+    }
+
+    private static void initializeHistoryTable() {
+        Branch.historyTable = new int[12][8][8];
+        for (int i = 0; i < 12; i++) {
+            for (int j = 0; j < 8; j++) {
+                Arrays.fill(Branch.historyTable[i][j], 0);
+            }
+        }
+        //saveHistoryTable();
+    }
+
+    public static void saveHistoryTable() {
+        File historyFile = new File(historyFilePath);
+
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(historyFile))) {
+            for (int[][] layer : Branch.historyTable) {
+                JSONArray jsonLayer = new JSONArray();
+
+                for (int[] row : layer) {
+                    jsonLayer.put(new JSONArray(row));
+                }
+
+                writer.write(jsonLayer.toString());
+                writer.newLine();
+            }
+
+            System.out.println("historyTable saved successfully to: " + historyFilePath);
+        } catch (IOException e) {
+            System.out.println("Failed to save historyTable: " + e.getMessage());
         }
     }
 

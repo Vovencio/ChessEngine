@@ -5,9 +5,9 @@ def compute_function():
     results = []
 
     # Iterate over x values from 0 to 16 (inclusive)
-    for x in range(0, 28):
+    for x in range(0, 9):
         # Replace this with your desired function
-        result = math.pow(x/27, 0.25)
+        result = math.pow(x/8, 0.9)
         results.append(result)
 
     # Print the Java array with double precision

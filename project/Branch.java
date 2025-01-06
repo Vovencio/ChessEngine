@@ -1,7 +1,6 @@
 import java.util.ArrayList;
 import java.util.List;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.Comparator;
 
 /**
  * Branch class, which demonstrates a chess board.
@@ -11,6 +10,8 @@ import java.util.Set;
  */
 
 public class Branch {
+
+    public static int[][][] historyTable;
 
     static public int evals;
 
@@ -22,6 +23,35 @@ public class Branch {
     private final Position position;
     private final EngineOld engine;
     private boolean notDeeper = false;
+
+    public int getScore() {
+        return score;
+    }
+
+    public void setScore(int score) {
+        this.score = score;
+    }
+
+    private int score;
+
+    public boolean isKiller() {
+        return isKiller;
+    }
+
+    public void setKiller(boolean killer) {
+        isKiller = killer;
+    }
+
+    public boolean isCapture() {
+        return isCapture;
+    }
+
+    public void setCapture(boolean capture) {
+        isCapture = capture;
+    }
+
+    private boolean isKiller;
+    private boolean isCapture;
 
     public List<Move> getKillerMoves() {
         return killerMoves;
@@ -90,30 +120,47 @@ public class Branch {
         // Killer Branches are getting checked because these caused a cutoff in a sibling position.
         List<Branch> branchesToCheck = new ArrayList<>();
 
-        if (this.parent != null){
-            if (!parent.getKillerMoves().isEmpty()){
-                List<Branch> killerBranches= new ArrayList<>();
-                List<Branch> normalBranches= new ArrayList<>();
+        List<Branch> killerBranches = new ArrayList<>();
+        List<Branch> captureBranches = new ArrayList<>();
+        List<Branch> normalBranches = new ArrayList<>();
 
-                for (Branch child : this.children){
-                    for (Move killerMove : this.parent.killerMoves){
-                        if (Move.isEqual(child.getMove(), killerMove)){
-                            killerBranches.add(child);
-                            break;
-                        }
-                        else {
-                            normalBranches.add(child);
-                            break;
-                        }
+        boolean killerAvailable = false;
+        if (this.parent != null) {
+            if (!parent.getKillerMoves().isEmpty()) {
+                killerAvailable = true;
+            }
+        }
+
+        if (killerAvailable) {
+            for (Branch child : children){
+                for (Move killerMove : this.parent.killerMoves) {
+                    if (Move.isEqual(child.getMove(), killerMove)) {
+                        killerBranches.add(child);
+                        child.setKiller(true);
+                        break;
                     }
                 }
-
-                branchesToCheck.addAll(killerBranches);
-                branchesToCheck.addAll(normalBranches);
             }
-            else branchesToCheck = children;
         }
-        else branchesToCheck = children;
+
+        for (Branch child : children) {
+            if (!child.isKiller()){
+                if (child.move.getToPiece() != 0) {
+                    captureBranches.add(child);
+                    child.setCapture(true);
+                } else {
+                    normalBranches.add(child);
+                    child.score = historyTable[child.move.getFromPiece()-1][child.move.getToPositionX()][child.move.getToPositionY()];
+                }
+            }
+        }
+
+        normalBranches.sort(Comparator.comparingInt(Branch::getScore).reversed());
+
+        branchesToCheck.addAll(killerBranches);
+        branchesToCheck.addAll(captureBranches);
+        branchesToCheck.addAll(normalBranches);
+
 
         for (Branch child : branchesToCheck) {
             position.playMove(child.getMove());
@@ -129,6 +176,8 @@ public class Branch {
             }
             if (alpha >= beta) {
                 if (parent != null) this.parent.getKillerMoves().add(child.move);
+                if (!child.isCapture())
+                    historyTable[child.move.getFromPiece()-1][child.move.getToPositionX()][child.move.getToPositionY()] += depth*depth;
                 break; // Beta cutoff
             }
         }
@@ -158,30 +207,46 @@ public class Branch {
         // Killer Branches are getting checked because these caused a cutoff in a sibling position.
         List<Branch> branchesToCheck = new ArrayList<>();
 
-        if (this.parent != null){
-            if (!parent.getKillerMoves().isEmpty()){
-                List<Branch> killerBranches= new ArrayList<>();
-                List<Branch> normalBranches= new ArrayList<>();
+        List<Branch> killerBranches = new ArrayList<>();
+        List<Branch> captureBranches = new ArrayList<>();
+        List<Branch> normalBranches = new ArrayList<>();
 
-                for (Branch child : this.children){
-                    for (Move killerMove : this.parent.killerMoves){
-                        if (Move.isEqual(child.getMove(), killerMove)){
-                            killerBranches.add(child);
-                            break;
-                        }
-                        else {
-                            normalBranches.add(child);
-                            break;
-                        }
+        boolean killerAvailable = false;
+        if (this.parent != null) {
+            if (!parent.getKillerMoves().isEmpty()) {
+                killerAvailable = true;
+            }
+        }
+
+        if (killerAvailable) {
+            for (Branch child : children){
+                for (Move killerMove : this.parent.killerMoves) {
+                    if (Move.isEqual(child.getMove(), killerMove)) {
+                        killerBranches.add(child);
+                        child.setKiller(true);
+                        break;
                     }
                 }
-
-                branchesToCheck.addAll(killerBranches);
-                branchesToCheck.addAll(normalBranches);
             }
-            else branchesToCheck = children;
         }
-        else branchesToCheck = children;
+
+        for (Branch child : children) {
+            if (!child.isKiller()){
+                if (child.move.getToPiece() != 0) {
+                    captureBranches.add(child);
+                    child.setCapture(true);
+                } else {
+                    normalBranches.add(child);
+                    child.score = historyTable[child.move.getFromPiece()-1][child.move.getToPositionX()][child.move.getToPositionY()];
+                }
+            }
+        }
+
+        normalBranches.sort(Comparator.comparingInt(Branch::getScore).reversed());
+
+        branchesToCheck.addAll(killerBranches);
+        branchesToCheck.addAll(captureBranches);
+        branchesToCheck.addAll(normalBranches);
 
         for (Branch child : branchesToCheck) {
             position.playMove(child.getMove());
@@ -197,6 +262,8 @@ public class Branch {
             }
             if (beta <= alpha) {
                 if (parent != null) this.parent.getKillerMoves().add(child.move);
+                if (!child.isCapture())
+                    historyTable[child.move.getFromPiece()-1][child.move.getToPositionX()][child.move.getToPositionY()] += depth*depth;
                 break; // Alpha cutoff
             }
         }
