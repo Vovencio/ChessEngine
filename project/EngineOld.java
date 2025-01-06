@@ -315,6 +315,21 @@ public class EngineOld {
         };
     }
 
+    public static int getWorthInt(byte content){
+        boolean isBlack = (content > 6);
+
+        byte piece = isBlack ? (byte) (content - 6) : content;
+
+        return switch (piece) {
+            case 1 -> 1;
+            case 2 -> 3;
+            case 3 -> 4;
+            case 4 -> 5;
+            case 5 -> 9;
+            default -> 0;
+        };
+    }
+
     public double evalPawn(byte x, byte y, boolean isBlack) {
         double baseValue = 1.0;
 
@@ -391,13 +406,31 @@ public class EngineOld {
     }
 
     public Branch generateBestMove(int depth, Position position){
+        Main.initializeHistoryTable();
         Branch.evals = 0;
+        Branch.currentSearch = depth;
         enginePosition.loadFEN(position.generateFEN());
         Branch root = new Branch(enginePosition, this);
 
-        if (position.isActiveWhite()) root.maxi(-Double.MAX_VALUE, Double.MAX_VALUE, depth);
-        else root.mini(-Double.MAX_VALUE, Double.MAX_VALUE, depth);
+        for (int d = 1; d <= depth; d++){
+            if (position.isActiveWhite()) root.maxi(-Double.MAX_VALUE, Double.MAX_VALUE, d);
+            else root.mini(-Double.MAX_VALUE, Double.MAX_VALUE, d);
+        }
 
         return root.getBestChild();
+    }
+
+    public boolean isOnlyPawns(){
+        boolean isOnly = true;
+        for (byte x = 0; x<8; x++){
+            for (byte y = 0; y<8; y++){
+                byte content = enginePosition.getSquare(x, y).getContent();
+                if (content != 1 && content != 7 && content != 6 && content != 12){
+                    isOnly = false;
+                    break;
+                }
+            }
+        }
+        return isOnly;
     }
 }

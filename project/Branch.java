@@ -11,11 +11,29 @@ import java.util.Comparator;
 
 public class Branch {
 
+    static final int MAX_HISTORY = Integer.MAX_VALUE;
+
     public static int[][][] historyTable;
+    public static int[][][] takeTable;
+
+    public static int currentSearch;
+
+    public static int clamp(int value, int min, int max) {
+        return Math.max(min, Math.min(max, value));
+    }
+
+    static void updateHistory(int depth, byte piece, byte x, byte y, boolean cutOff){
+        int bonus = (cutOff) ? depth * depth : 0; // (int) (-depth / 1.8);
+
+        int clampedBonus = clamp(bonus, -MAX_HISTORY, MAX_HISTORY);
+
+        historyTable[piece-1][x][y] += clampedBonus - historyTable[piece-1][x][y] * Math.abs(clampedBonus) / MAX_HISTORY;
+    }
 
     static public int evals;
 
-    private double evaluation;
+    private static double BASE_EVAL = -69;
+    private double evaluation = BASE_EVAL;
 
     private Move move;
     private Branch parent;
@@ -94,12 +112,71 @@ public class Branch {
     private double evaluate(){
         evals++;
         position.playMove(move); // Apply the move
-        evaluation = engine.evalBoard(); // Evaluate the board after the move
+        this.evaluation = engine.evalBoard(); // Evaluate the board after the move
         position.reverseMove(move);
         return evaluation;
     }
 
+    public List<Branch> sortMoves(){
+        // Killer Branches are getting checked because these caused a cutoff in a sibling position.
+        List<Branch> branchesToCheck = new ArrayList<>();
+
+        List<Branch> killerBranches = new ArrayList<>();
+        List<Branch> captureBranches = new ArrayList<>();
+        List<Branch> normalBranches = new ArrayList<>();
+
+        List<Branch> superCaptureBranches = new ArrayList<>();
+
+        boolean killerAvailable = false;
+        if (this.parent != null) {
+            if (!parent.getKillerMoves().isEmpty()) {
+                killerAvailable = true;
+            }
+        }
+
+        if (killerAvailable) {
+            for (Branch child : children){
+                for (Move killerMove : this.parent.killerMoves) {
+                    if (Move.isEqual(child.getMove(), killerMove)) {
+                        killerBranches.add(child);
+                        child.setKiller(true);
+                        break;
+                    }
+                }
+            }
+        }
+
+        for (Branch child : children) {
+            if (!child.isKiller()){
+                if (child.move.getToPiece() != 0) {
+                    child.setCapture(true);
+                    int capScore = EngineOld.getWorthInt(child.move.getToPiece()) - EngineOld.getWorthInt(child.move.getFromPiece());
+                    child.score = takeTable[child.move.getFromPiece()-1][child.move.getToPositionX()][child.move.getToPositionY()];
+                    if (capScore > 2) {
+                        superCaptureBranches.add(child);
+                    }
+                    else captureBranches.add(child);
+                } else {
+                    normalBranches.add(child);
+                    child.score = historyTable[child.move.getFromPiece()-1][child.move.getToPositionX()][child.move.getToPositionY()];
+                }
+            }
+        }
+
+        normalBranches.sort(Comparator.comparingInt(Branch::getScore).reversed());
+        captureBranches.sort(Comparator.comparingInt(Branch::getScore).reversed());
+
+        branchesToCheck.addAll(superCaptureBranches);
+        branchesToCheck.addAll(killerBranches);
+        branchesToCheck.addAll(captureBranches);
+        branchesToCheck.addAll(normalBranches);
+
+        return branchesToCheck;
+    }
+
     public double maxi(double alpha, double beta, int depth) {
+        byte[] kingPos = (position.isActiveWhite()) ? position.getKingPosWhite() : position.getKingPosBlack();
+
         if (notDeeper){
             return evaluation;
         }
@@ -117,56 +194,12 @@ public class Branch {
 
         double max = -Double.MAX_VALUE;
 
-        // Killer Branches are getting checked because these caused a cutoff in a sibling position.
-        List<Branch> branchesToCheck = new ArrayList<>();
-
-        List<Branch> killerBranches = new ArrayList<>();
-        List<Branch> captureBranches = new ArrayList<>();
-        List<Branch> normalBranches = new ArrayList<>();
-
-        boolean killerAvailable = false;
-        if (this.parent != null) {
-            if (!parent.getKillerMoves().isEmpty()) {
-                killerAvailable = true;
-            }
-        }
-
-        if (killerAvailable) {
-            for (Branch child : children){
-                for (Move killerMove : this.parent.killerMoves) {
-                    if (Move.isEqual(child.getMove(), killerMove)) {
-                        killerBranches.add(child);
-                        child.setKiller(true);
-                        break;
-                    }
-                }
-            }
-        }
-
-        for (Branch child : children) {
-            if (!child.isKiller()){
-                if (child.move.getToPiece() != 0) {
-                    captureBranches.add(child);
-                    child.setCapture(true);
-                } else {
-                    normalBranches.add(child);
-                    child.score = historyTable[child.move.getFromPiece()-1][child.move.getToPositionX()][child.move.getToPositionY()];
-                }
-            }
-        }
-
-        normalBranches.sort(Comparator.comparingInt(Branch::getScore).reversed());
-
-        branchesToCheck.addAll(killerBranches);
-        branchesToCheck.addAll(captureBranches);
-        branchesToCheck.addAll(normalBranches);
-
+        List<Branch> branchesToCheck = sortMoves();
 
         for (Branch child : branchesToCheck) {
             position.playMove(child.getMove());
             double eval = child.mini(alpha, beta, depth-1);
             position.reverseMove(child.getMove());
-
             if (eval > max) {
                 max = eval;
                 bestChild = child;
@@ -175,11 +208,24 @@ public class Branch {
                 alpha = max;
             }
             if (alpha >= beta) {
-                if (parent != null) this.parent.getKillerMoves().add(child.move);
-                if (!child.isCapture())
-                    historyTable[child.move.getFromPiece()-1][child.move.getToPositionX()][child.move.getToPositionY()] += depth*depth;
+                if (parent != null) {
+                    boolean isNew = true;
+                    for (Move killerMove : this.parent.killerMoves) {
+                        if (Move.isEqual(child.getMove(), killerMove)){
+                            isNew = false;
+                            break;
+                        }
+                    }
+                    if (isNew) this.parent.getKillerMoves().add(child.move);
+                }
+                if (!child.isKiller()){
+                    if (!child.isCapture())
+                        updateHistory(depth, child.move.getFromPiece(), child.move.getToPositionX(), child.move.getToPositionY(), true);
+                    else takeTable[child.move.getFromPiece()-1][child.move.getToPositionX()][child.move.getToPositionY()] += depth*depth;
+                }
                 break; // Beta cutoff
             }
+            else updateHistory(depth, child.move.getFromPiece(), child.move.getToPositionX(), child.move.getToPositionY(), false);
         }
 
         this.evaluation = max;
@@ -187,6 +233,7 @@ public class Branch {
     }
 
     public double mini(double alpha, double beta, int depth) {
+
         if (notDeeper){
             return evaluation;
         }
@@ -204,49 +251,7 @@ public class Branch {
 
         double min = Double.MAX_VALUE;
 
-        // Killer Branches are getting checked because these caused a cutoff in a sibling position.
-        List<Branch> branchesToCheck = new ArrayList<>();
-
-        List<Branch> killerBranches = new ArrayList<>();
-        List<Branch> captureBranches = new ArrayList<>();
-        List<Branch> normalBranches = new ArrayList<>();
-
-        boolean killerAvailable = false;
-        if (this.parent != null) {
-            if (!parent.getKillerMoves().isEmpty()) {
-                killerAvailable = true;
-            }
-        }
-
-        if (killerAvailable) {
-            for (Branch child : children){
-                for (Move killerMove : this.parent.killerMoves) {
-                    if (Move.isEqual(child.getMove(), killerMove)) {
-                        killerBranches.add(child);
-                        child.setKiller(true);
-                        break;
-                    }
-                }
-            }
-        }
-
-        for (Branch child : children) {
-            if (!child.isKiller()){
-                if (child.move.getToPiece() != 0) {
-                    captureBranches.add(child);
-                    child.setCapture(true);
-                } else {
-                    normalBranches.add(child);
-                    child.score = historyTable[child.move.getFromPiece()-1][child.move.getToPositionX()][child.move.getToPositionY()];
-                }
-            }
-        }
-
-        normalBranches.sort(Comparator.comparingInt(Branch::getScore).reversed());
-
-        branchesToCheck.addAll(killerBranches);
-        branchesToCheck.addAll(captureBranches);
-        branchesToCheck.addAll(normalBranches);
+        List<Branch> branchesToCheck = sortMoves();
 
         for (Branch child : branchesToCheck) {
             position.playMove(child.getMove());
@@ -261,11 +266,24 @@ public class Branch {
                 beta = min;
             }
             if (beta <= alpha) {
-                if (parent != null) this.parent.getKillerMoves().add(child.move);
-                if (!child.isCapture())
-                    historyTable[child.move.getFromPiece()-1][child.move.getToPositionX()][child.move.getToPositionY()] += depth*depth;
+                if (parent != null) {
+                    boolean isNew = true;
+                    for (Move killerMove : this.parent.killerMoves) {
+                        if (Move.isEqual(child.getMove(), killerMove)){
+                            isNew = false;
+                            break;
+                        }
+                    }
+                    if (isNew) this.parent.getKillerMoves().add(child.move);
+                }
+                if (!child.isKiller()){
+                    if (!child.isCapture())
+                        updateHistory(depth, child.move.getFromPiece(), child.move.getToPositionX(), child.move.getToPositionY(), true);
+                    else takeTable[child.move.getFromPiece()-1][child.move.getToPositionX()][child.move.getToPositionY()] += depth*depth;
+                }
                 break; // Alpha cutoff
             }
+            else updateHistory(depth, child.move.getFromPiece(), child.move.getToPositionX(), child.move.getToPositionY(), false);
         }
 
         this.evaluation = min;

@@ -213,11 +213,13 @@ public class Main {
         }
     }
 
-    private static void initializeHistoryTable() {
+    public static void initializeHistoryTable() {
         Branch.historyTable = new int[12][8][8];
+        Branch.takeTable = new int[12][8][8];
         for (int i = 0; i < 12; i++) {
             for (int j = 0; j < 8; j++) {
                 Arrays.fill(Branch.historyTable[i][j], 0);
+                Arrays.fill(Branch.takeTable[i][j], 0);
             }
         }
         //saveHistoryTable();
@@ -510,7 +512,7 @@ public class Main {
             if (engineTurn){
                 // Engine's turn
                 System.out.println("Engine is thinking...");
-                Branch bestMove = engine.generateBestMove(4, mainPosition);
+                Branch bestMove = engine.generateBestMove(6, mainPosition);
                 if (bestMove != null) {
                     Move engineMove = bestMove.getMove();
                     mainPosition.playMove(engineMove);
