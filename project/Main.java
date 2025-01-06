@@ -2,10 +2,12 @@ import java.util.Scanner;
 import java.util.List;
 import java.io.File;
 import java.io.FileNotFoundException;
+import org.json.JSONArray;
 
 import java.io.*;
-import java.util.*;
+// import java.util.*;
 import org.json.JSONObject;
+import java.util.Properties;
 
 /**
  * Main class, where everything is sewed together.
@@ -16,11 +18,13 @@ import org.json.JSONObject;
 public class Main {
 
     private static Position mainPosition;
-    private static Engine engine;
+    private static EngineOld engine;
+    private static double[][][] evalTable;
 
     public static void main(String[] args) {
+        // loadConfig();
         mainPosition = new Position();
-        engine = new Engine();
+        engine = new EngineOld();
 
         Scanner scanner = new Scanner(System.in);
 
@@ -57,6 +61,81 @@ public class Main {
                 // Handle individual commands directly in the main loop
                 handleCommand(input);
             }
+        }
+    }
+
+    public static void loadConfig(){
+        String configFilePath = "config.properties";
+        String evalsFilePath;
+
+        // Try to load the config file
+        Properties config = new Properties();
+        try {
+            File configFile = new File(configFilePath);
+            if (configFile.exists()) {
+                try (FileReader reader = new FileReader(configFile)) {
+                    config.load(reader);
+                    evalsFilePath = config.getProperty("evalsFilePath");
+                }
+            } else {
+                evalsFilePath = null;
+            }
+        } catch (IOException e) {
+            System.out.println("Error reading config file: " + e.getMessage());
+            evalsFilePath = null;
+        }
+
+        // If the path from the config is null or invalid, ask the user
+        File evalsFile = null;
+        if (evalsFilePath == null || !(evalsFile = new File(evalsFilePath)).exists()) {
+            System.out.println("The JSONL file path could not be found.");
+            Scanner scanner = new Scanner(System.in);
+            System.out.print("Please enter the path to the JSONL file: ");
+            evalsFilePath = scanner.nextLine();
+            evalsFile = new File(evalsFilePath);
+
+            // Save the new path to the config file
+            try (FileWriter writer = new FileWriter(configFilePath)) {
+                config.setProperty("evalsFilePath", evalsFilePath);
+                config.store(writer, "Configuration File for JSONL Path");
+                System.out.println("Config file updated with new path!");
+            } catch (IOException e) {
+                System.out.println("Failed to save config file: " + e.getMessage());
+            }
+        }
+
+        // Read the JSONL file
+        if (evalsFile.exists()) {
+            System.out.println("Reading JSONL file from: " + evalsFilePath);
+
+            try (BufferedReader reader = new BufferedReader(new FileReader(evalsFile))) {
+                int layers = 13; // Adjust this if needed
+                int rows = 8;
+                int cols = 8;
+                evalTable = new double[layers][rows][cols];
+
+                String line;
+                int layerIndex = 0;
+
+                while ((line = reader.readLine()) != null && layerIndex < layers) {
+                    JSONArray jsonLayer = new JSONArray(line);
+
+                    for (int i = 0; i < jsonLayer.length(); i++) {
+                        JSONArray row = jsonLayer.getJSONArray(i);
+                        for (int j = 0; j < row.length(); j++) {
+                            evalTable[layerIndex][i][j] = row.getDouble(j);
+                        }
+                    }
+
+                    layerIndex++;
+                }
+
+                System.out.println("Loaded config successfully!");
+            } catch (IOException e) {
+                System.out.println("Failed to read the JSONL file: " + e.getMessage());
+            }
+        } else {
+            System.out.println("The JSONL file could not be found at the given path.");
         }
     }
 
@@ -320,44 +399,10 @@ public class Main {
         Scanner scanner = new Scanner(System.in);
         System.out.println("Engine game started. Enter your moves in standard notation (e.g., e2e4).");
         System.out.println("Type 'exit' to quit the game.");
+        boolean engineTurn = true;
 
         while (true) {
-            try {
-                // Check if the current player (player or engine) has possible moves
-                List<Move> playerMoves = mainPosition.getPossibleMovesBoard(mainPosition.isActiveWhite());
-                if (playerMoves.isEmpty()) {
-                    byte[] kingPos = mainPosition.isActiveWhite() ? mainPosition.getKingPosWhite() : mainPosition.getKingPosBlack();
-                    if (mainPosition.isAttacked(kingPos[0], kingPos[1], mainPosition.isActiveWhite())){
-                        System.out.println((mainPosition.isActiveWhite() ? "White" : "Black") + " is checkmated.");
-                    } else {
-                        System.out.println("Game over. It's a stalemate.");
-                    }
-                    break;
-                }
-                System.out.print("Your move: ");
-                String input = scanner.nextLine().trim();
-
-                if (input.equalsIgnoreCase("exit")) {
-                    System.out.println("Exiting the engine game. Goodbye!");
-                    break;
-                }
-
-                // Validate and play the player's move
-                boolean validMove = false;
-                for (Move move : playerMoves) {
-                    if (move.toString().equalsIgnoreCase(input)) {
-                        mainPosition.playMove(move);
-                        System.out.println("You played: " + move);
-                        validMove = true;
-                        break;
-                    }
-                }
-
-                if (!validMove) {
-                    System.out.println("Invalid move. Please try again. Type 'exit' to exit.");
-                    continue;
-                }
-
+            if (engineTurn){
                 // Engine's turn
                 System.out.println("Engine is thinking...");
                 Branch bestMove = engine.generateBestMove(4, mainPosition);
@@ -365,14 +410,53 @@ public class Main {
                     Move engineMove = bestMove.getMove();
                     mainPosition.playMove(engineMove);
                     System.out.printf("Engine plays: %s (eval: %.3f)%n", engineMove, bestMove.getEvaluation());
+                    engineTurn = false;
                 } else {
                     System.out.println("Engine could not find a valid move. The game ends.");
                     break;
                 }
+            }
+            else {
+                try {
+                    // Check if the current player (player or engine) has possible moves
+                    List<Move> playerMoves = mainPosition.getPossibleMovesBoard(mainPosition.isActiveWhite());
+                    if (playerMoves.isEmpty()) {
+                        byte[] kingPos = mainPosition.isActiveWhite() ? mainPosition.getKingPosWhite() : mainPosition.getKingPosBlack();
+                        if (mainPosition.isAttacked(kingPos[0], kingPos[1], mainPosition.isActiveWhite())){
+                            System.out.println((mainPosition.isActiveWhite() ? "White" : "Black") + " is checkmated.");
+                        } else {
+                            System.out.println("Game over. It's a stalemate.");
+                        }
+                        break;
+                    }
+                    System.out.print("Your move: ");
+                    String input = scanner.nextLine().trim();
 
+                    if (input.equalsIgnoreCase("exit")) {
+                        System.out.println("Exiting the engine game. Goodbye!");
+                        break;
+                    }
 
-            } catch (Exception e) {
-                System.out.println("An error occurred: " + e.getMessage());
+                    // Validate and play the player's move
+                    boolean validMove = false;
+                    for (Move move : playerMoves) {
+                        if (move.toString().equalsIgnoreCase(input)) {
+                            mainPosition.playMove(move);
+                            System.out.println("You played: " + move);
+                            engineTurn = true;
+                            validMove = true;
+                            break;
+                        }
+                    }
+
+                    if (!validMove) {
+                        System.out.println("Invalid move. Please try again. Type 'exit' to exit.");
+                        continue;
+                    }
+
+                } catch (Exception e) {
+                    System.out.println("An error occurred: " + e.getMessage());
+                }
             }
         }
     }
@@ -422,6 +506,56 @@ public class Main {
             System.out.println("File not found: " + filename);
         }
     }
+
+    /*
+    private static void generateWorthTables() {
+        String filename = "C:\\Users\\vladi\\Downloads\\test-positions.txt"; // Extract the filename after "test-moves "
+
+        try {
+            Scanner fileScanner = new Scanner(new File(filename));
+
+            while (fileScanner.hasNextLine()) {
+                String fen = fileScanner.nextLine().trim();
+                fileScanner.nextLine();
+
+                try {
+                    engine.enginePosition.loadFEN(fen);
+                    engine.evalBoard();
+                } catch (Exception e) {
+                    System.out.println("Error processing FEN: " + fen);
+                    System.out.println(e.getMessage());
+                }
+            }
+        } catch (FileNotFoundException e) {
+            System.out.println("File not found: " + filename);
+        }
+
+        for (int i = 0; i < 12; i++) {
+            for (int x = 0; x < 8; x++) {
+                for (int y = 0; y < 8; y++) {
+                    if (engine.pieceUsedArray[i][x][y] == 0){
+                        engine.pieceUsedArray[i][x][y] = 1;
+                        engine.pieceWorthArray[i][x][y] = Engine.getBaseEval((byte) (i+1));
+                        System.out.println("No value for " + i + ", at: " + x + ", " + y);
+                    }
+                    engine.processed[i][x][y] = (double) (engine.pieceWorthArray[i][x][y] / engine.pieceUsedArray[i][x][y]);
+                }
+            }
+        }
+
+        try (FileWriter writer = new FileWriter("C:\\Users\\vladi\\Downloads\\pieceEvals.jsonl")) {
+            for (double[][] layer : engine.processed) {
+                // Convert each 2D layer to a JSONArray
+                JSONArray jsonLayer = new JSONArray(layer);
+                writer.write(jsonLayer.toString() + "\n"); // Write it as a new line
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        System.out.println("Saved!");
+    }
+    */
 
     private static void handleFlipCommand(){
         mainPosition = mainPosition.flipColor();

@@ -20,7 +20,7 @@ public class Branch {
     private Branch parent;
     private List<Branch> children;
     private final Position position;
-    private final Engine engine;
+    private final EngineOld engine;
     private boolean notDeeper = false;
 
     public List<Move> getKillerMoves() {
@@ -45,7 +45,7 @@ public class Branch {
         return bestChild;
     }
 
-    public Branch(Move move, Branch parent, Position position, Engine engine) {
+    public Branch(Move move, Branch parent, Position position, EngineOld engine) {
         this.move = move;
         this.parent = parent;
         this.position = position;
@@ -54,7 +54,7 @@ public class Branch {
         this.depth = parent.getDepth() + 1;
     }
 
-    public Branch(Position position, Engine engine) {
+    public Branch(Position position, EngineOld engine) {
         this.position = position;
         this.engine = engine;
         this.children = new ArrayList<>();
@@ -69,14 +69,22 @@ public class Branch {
         return evaluation;
     }
 
-    public double maxi(double alpha, double beta) {
+    public double maxi(double alpha, double beta, int depth) {
         if (notDeeper){
             return evaluation;
         }
-        // If it's a leaf node (no children), perform the evaluation directly
-        if (children.isEmpty()) {
+        // If it's a leaf node, perform the evaluation directly
+        if (depth == 0){
             return evaluate();
         }
+
+        if (children.isEmpty()) {
+            this.generateChildren();
+            if (notDeeper){
+                return evaluation;
+            }
+        }
+
         double max = -Double.MAX_VALUE;
 
         // Killer Branches are getting checked because these caused a cutoff in a sibling position.
@@ -109,7 +117,7 @@ public class Branch {
 
         for (Branch child : branchesToCheck) {
             position.playMove(child.getMove());
-            double eval = child.mini(alpha, beta);
+            double eval = child.mini(alpha, beta, depth-1);
             position.reverseMove(child.getMove());
 
             if (eval > max) {
@@ -129,14 +137,22 @@ public class Branch {
         return max;
     }
 
-    public double mini(double alpha, double beta) {
+    public double mini(double alpha, double beta, int depth) {
         if (notDeeper){
             return evaluation;
         }
-        // If it's a leaf node (no children), perform the evaluation directly
-        if (children.isEmpty()) {
+        // If it's a leaf node, perform the evaluation directly
+        if (depth == 0){
             return evaluate();
         }
+
+        if (children.isEmpty()) {
+            this.generateChildren();
+            if (notDeeper){
+                return evaluation;
+            }
+        }
+
         double min = Double.MAX_VALUE;
 
         // Killer Branches are getting checked because these caused a cutoff in a sibling position.
@@ -169,7 +185,7 @@ public class Branch {
 
         for (Branch child : branchesToCheck) {
             position.playMove(child.getMove());
-            double eval = child.maxi(alpha, beta);
+            double eval = child.maxi(alpha, beta, depth-1);
             position.reverseMove(child.getMove());
 
             if (eval < min) {
@@ -190,7 +206,6 @@ public class Branch {
     }
 
     public void generateChildren() {
-        if (parent != null) position.playMove(move);
         // Generate the child branches based on all possible moves if no children exist
         if (children.isEmpty()) {
             List<Move> possibleMoves = position.getPossibleMovesBoard(position.isActiveWhite());
@@ -212,13 +227,7 @@ public class Branch {
                     children.add(new Branch(possibleMove, this, this.position, this.engine));
                 }
             }
-        } else {
-            // Recurse into each child and generate their children as well
-            for (Branch child : children) {
-                child.generateChildren();
-            }
         }
-        if (parent != null) position.reverseMove(move);
     }
 
     public double getEvaluation() {
