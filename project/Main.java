@@ -468,7 +468,9 @@ public class Main {
     private static void handleStaticCommand() {
         engine.enginePosition.loadFEN(mainPosition.generateFEN());
         double eval = engine.evalBoard();
+        double qS = engine.qSearch(10, mainPosition);
         System.out.printf("The static function evaluates this position as %.3f%n", eval);
+        System.out.printf("The qS function evaluates this position as %.3f%n", qS);
     }
 
     private static void handleBestCommand(String[] parts) {

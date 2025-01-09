@@ -125,9 +125,13 @@ public class Branch {
 
     private double evaluate(){
         evaluationCount++;
-        position.playMove(move); // Apply the move
-        this.evaluation = engine.evalBoard(); // Evaluate the board after the move
-        position.reverseMove(move);
+        if (parent != null){
+            position.playMove(move); // Apply the move
+            this.evaluation = engine.evalBoard(); // Evaluate the board after the move
+            position.reverseMove(move);
+            return evaluation;
+        }
+        this.evaluation = engine.evalBoard(); // Evaluate the board
         return evaluation;
     }
 
@@ -287,8 +291,6 @@ public class Branch {
     }
      */
 
-    static final int DELTA = 2;
-
     public double qMaxi(int depth, double alpha, double beta) {
         double startEval = evaluate();
         // byte[] kingPos = (position.isActiveWhite()) ? position.getKingPosWhite() : position.getKingPosBlack();
@@ -320,14 +322,16 @@ public class Branch {
 
         for (Branch child : branchesToCheck) {
 
-            if (EngineOld.getWorthInt(child.move.getToPiece())-EngineOld.getWorthInt(child.move.getFromPiece()) < -1)
+            if (EngineOld.getWorthInt(child.move.getToPiece())-EngineOld.getWorthInt(child.move.getFromPiece()) < 0)
+                continue;
+            if (child.isMate())
                 continue;
 
             position.playMove(child.getMove());
             double staticEval = child.evaluate();
 
             if (staticEval > startEval){
-                double eval = child.qMini(depth-1);
+                double eval = child.qMini(depth-1, alpha, beta);
                 if (eval >= beta)
                     return max;
                 if (eval > max)
@@ -345,16 +349,23 @@ public class Branch {
         return max;
     }
 
-    public double qMini(int depth) {
+    public double qMini(int depth, double alpha, double beta) {
         double startEval = evaluate();
         // byte[] kingPos = (position.isActiveWhite()) ? position.getKingPosWhite() : position.getKingPosBlack();
 
-        if (notDeeper){
+        if (notDeeper) {
             return startEval;
         }
         // If it's a leaf node, perform the evaluation directly
-        if (depth == 0){
+        if (depth == 0) {
             return startEval;
+        }
+
+        if (startEval <= alpha) {
+            return startEval;
+        }
+        if (beta > startEval) {
+            beta = startEval;
         }
 
         if (children.isEmpty()) {
@@ -366,34 +377,67 @@ public class Branch {
 
         double min = startEval;
 
-        List<Branch> branchesToCheck = this.children; //sortMoves(this.children);
+        List<Branch> branchesToCheck = this.children; // sortMoves(this.children);
 
         for (Branch child : branchesToCheck) {
+            if (child.isMate())
+                continue;
+            if (EngineOld.getWorthInt(child.move.getToPiece()) - EngineOld.getWorthInt(child.move.getFromPiece()) < 0) {
+                continue;
+            }
+
             position.playMove(child.getMove());
             double staticEval = child.evaluate();
 
-            if (staticEval > startEval){
-                double eval = child.qMini(depth-1);
-                if (eval < min){
+            if (staticEval < startEval) {
+                double eval = child.qMaxi(depth - 1, alpha, beta);
+                if (eval <= alpha) {
+                    return min;
+                }
+                if (eval < min) {
                     min = eval;
+                }
+                if (eval < beta) {
+                    beta = eval;
                 }
             }
             position.reverseMove(child.getMove());
         }
 
-        this.evaluation = min;
-
-        this.children.clear();
-
         return min;
     }
 
-    public double qSearch(){
-        if (position.isActiveWhite()) return qMaxi(4);
-        else return qMini(4);
+    public double qSearch(double alpha, double beta){
+        double al = alpha + 0; double be = beta + 0;
+        if (position.isActiveWhite()) {
+            double max = qMaxi(10, al, be);
+            this.children.clear();
+            return max;
+        }
+        else{
+            double min = qMini(10, al, be);
+            this.children.clear();
+            return min;
+        }
     }
 
-    public double maxi(double alpha, double beta, int depth) {
+    public double qSearch(double alpha, double beta, int d){
+        double al = alpha + 0; double be = beta + 0;
+        if (position.isActiveWhite()) {
+            double max = qMaxi(d, al, be);
+            this.children.clear();
+            return max;
+        }
+        else{
+            double min = qMini(d, al, be);
+            this.children.clear();
+            return min;
+        }
+    }
+
+    static final double NMP_MARGIN = 2;
+
+    public double maxi(double alpha, double beta, int depth, boolean checkPruning) {
         // byte[] kingPos = (position.isActiveWhite()) ? position.getKingPosWhite() : position.getKingPosBlack();
 
         if (notDeeper){
@@ -401,7 +445,7 @@ public class Branch {
         }
         // If it's a leaf node, perform the evaluation directly
         if (depth == 0){
-            return qSearch();
+            return evaluate(); //qSearch(alpha, beta);
         }
 
         if (children.isEmpty()) {
@@ -417,11 +461,11 @@ public class Branch {
 
         for (Branch child : branchesToCheck) {
             position.playMove(child.getMove());
-            double eval = child.mini(alpha, beta, depth-1);
+            double eval = child.mini(alpha, beta, depth-1, true);
             position.reverseMove(child.getMove());
 
             // Mate Distance Pruning
-            if (child.isMate()){
+            if (child.isMate() && eval > 0){
                 if (eval < beta) {
                     beta = eval;
                     if (alpha >= eval) return eval;
@@ -472,14 +516,14 @@ public class Branch {
         return max;
     }
 
-    public double mini(double alpha, double beta, int depth) {
+    public double mini(double alpha, double beta, int depth, boolean checkPruning) {
 
         if (notDeeper){
             return evaluation;
         }
         // If it's a leaf node, perform the evaluation directly
         if (depth == 0){
-            return qSearch();
+            return evaluate();
         }
 
         if (children.isEmpty()) {
@@ -489,17 +533,19 @@ public class Branch {
             }
         }
 
+
+
         double min = Double.MAX_VALUE;
 
         List<Branch> branchesToCheck = sortMoves(this.children);
 
         for (Branch child : branchesToCheck) {
             position.playMove(child.getMove());
-            double eval = child.maxi(alpha, beta, depth-1);
+            double eval = child.maxi(alpha, beta, depth-1, true);
             position.reverseMove(child.getMove());
 
             // Mate Distance Pruning
-            if (child.isMate()){
+            if (child.isMate() && eval < 0){
                 if (eval > alpha) {
                     alpha = eval;
                     if (beta <= eval) return eval;

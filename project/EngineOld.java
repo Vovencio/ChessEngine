@@ -407,9 +407,9 @@ public class EngineOld {
     }
 
     public Branch generateBestMove(int depth, Position position){
+        Branch.currentSearch = depth;
         Main.initializeHistoryTable();
         Branch.evaluationCount = 0;
-        Branch.currentSearch = depth;
         enginePosition.loadFEN(position.generateFEN());
         Branch root = new Branch(enginePosition, this);
 
@@ -419,12 +419,17 @@ public class EngineOld {
         }
 
         for (int d = 1; d <= depth; d+=1){
-            if (position.isActiveWhite()) root.maxi(-Double.MAX_VALUE, Double.MAX_VALUE, d);
-            else root.mini(-Double.MAX_VALUE, Double.MAX_VALUE, d);
+            if (position.isActiveWhite()) root.maxi(-Double.MAX_VALUE, Double.MAX_VALUE, d, true);
+            else root.mini(-Double.MAX_VALUE, Double.MAX_VALUE, d, true);
             System.out.printf("Engine reached depth %,d. With %,d evaluations.%n", d, Branch.evaluationCount);
         }
 
         return root.getBestChild();
+    }
+
+    public double qSearch(int depth, Position position){
+        Branch root = new Branch(enginePosition, this);
+        return root.qSearch(-Double.MAX_VALUE, Double.MAX_VALUE);
     }
 
     public boolean isOnlyPawns(){
