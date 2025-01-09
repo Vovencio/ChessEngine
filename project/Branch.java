@@ -131,7 +131,18 @@ public class Branch {
         return evaluation;
     }
 
-    public List<Branch> sortMoves(){
+    /*
+    private double negEvaluate(){
+        evaluationCount++;
+        position.playMove(move); // Apply the move
+        double factor = position.isActiveWhite() ? -1 : 1;
+        this.evaluation = engine.evalBoard() * factor; // Evaluate the board after the move
+        position.reverseMove(move);
+        return evaluation;
+    }
+     */
+
+    public List<Branch> sortMoves(List<Branch> toSort){
         // Killer Branches are getting checked because these caused a cutoff in a sibling position.
         List<Branch> branchesToCheck = new ArrayList<>();
 
@@ -150,7 +161,7 @@ public class Branch {
         }
 
         if (killerAvailable) {
-            for (Branch child : children){
+            for (Branch child : toSort){
                 for (Move killerMove : this.parent.killerMoves) {
                     if (Move.isEqual(child.getMove(), killerMove)) {
                         killerBranches.add(child);
@@ -161,7 +172,7 @@ public class Branch {
             }
         }
 
-        for (Branch child : children) {
+        for (Branch child : toSort) {
             if (!child.isKiller()){
                 if (child.move.getToPiece() != 0) {
                     child.setCapture(true);
@@ -191,7 +202,8 @@ public class Branch {
         return branchesToCheck;
     }
 
-    public double maxi(double alpha, double beta, int depth) {
+    /*
+    public double negaMax(double alpha, double beta, int depth) {
         // byte[] kingPos = (position.isActiveWhite()) ? position.getKingPosWhite() : position.getKingPosBlack();
 
         if (notDeeper){
@@ -199,11 +211,11 @@ public class Branch {
         }
         // If it's a leaf node, perform the evaluation directly
         if (depth == 0){
-            return evaluate();
+            return negEvaluate();
         }
 
         if (children.isEmpty()) {
-            this.generateChildren();
+            this.negGenerateChildren();
             if (notDeeper){
                 return evaluation;
             }
@@ -215,7 +227,7 @@ public class Branch {
 
         for (Branch child : branchesToCheck) {
             position.playMove(child.getMove());
-            double eval = child.mini(alpha, beta, depth-1);
+            double eval = -child.negaMax(-beta, -alpha, depth-1);
             position.reverseMove(child.getMove());
 
             // Mate Distance Pruning
@@ -273,6 +285,192 @@ public class Branch {
 
         return max;
     }
+     */
+
+    static final int DELTA = 2;
+
+    public double qMaxi(int depth, double alpha, double beta) {
+        double startEval = evaluate();
+        // byte[] kingPos = (position.isActiveWhite()) ? position.getKingPosWhite() : position.getKingPosBlack();
+
+        if (notDeeper){
+            return startEval;
+        }
+        // If it's a leaf node, perform the evaluation directly
+        if (depth == 0){
+            return startEval;
+        }
+
+        if (startEval >= beta){
+            return startEval;
+        }
+        if (alpha < startEval)
+            alpha = startEval;
+
+        if (children.isEmpty()) {
+            this.generateCaptureChildren();
+            if (children.isEmpty()) {
+                return startEval;
+            }
+        }
+
+        double max = startEval;
+
+        List<Branch> branchesToCheck = this.children; //sortMoves(this.children);
+
+        for (Branch child : branchesToCheck) {
+
+            if (EngineOld.getWorthInt(child.move.getToPiece())-EngineOld.getWorthInt(child.move.getFromPiece()) < -1)
+                continue;
+
+            position.playMove(child.getMove());
+            double staticEval = child.evaluate();
+
+            if (staticEval > startEval){
+                double eval = child.qMini(depth-1);
+                if (eval >= beta)
+                    return max;
+                if (eval > max)
+                    max = eval;
+                if (eval > alpha)
+                    alpha = eval;
+            }
+            position.reverseMove(child.getMove());
+        }
+
+        this.evaluation = max;
+
+        this.children.clear();
+
+        return max;
+    }
+
+    public double qMini(int depth) {
+        double startEval = evaluate();
+        // byte[] kingPos = (position.isActiveWhite()) ? position.getKingPosWhite() : position.getKingPosBlack();
+
+        if (notDeeper){
+            return startEval;
+        }
+        // If it's a leaf node, perform the evaluation directly
+        if (depth == 0){
+            return startEval;
+        }
+
+        if (children.isEmpty()) {
+            this.generateCaptureChildren();
+            if (children.isEmpty()) {
+                return startEval;
+            }
+        }
+
+        double min = startEval;
+
+        List<Branch> branchesToCheck = this.children; //sortMoves(this.children);
+
+        for (Branch child : branchesToCheck) {
+            position.playMove(child.getMove());
+            double staticEval = child.evaluate();
+
+            if (staticEval > startEval){
+                double eval = child.qMini(depth-1);
+                if (eval < min){
+                    min = eval;
+                }
+            }
+            position.reverseMove(child.getMove());
+        }
+
+        this.evaluation = min;
+
+        this.children.clear();
+
+        return min;
+    }
+
+    public double qSearch(){
+        if (position.isActiveWhite()) return qMaxi(4);
+        else return qMini(4);
+    }
+
+    public double maxi(double alpha, double beta, int depth) {
+        // byte[] kingPos = (position.isActiveWhite()) ? position.getKingPosWhite() : position.getKingPosBlack();
+
+        if (notDeeper){
+            return evaluation;
+        }
+        // If it's a leaf node, perform the evaluation directly
+        if (depth == 0){
+            return qSearch();
+        }
+
+        if (children.isEmpty()) {
+            this.generateChildren();
+            if (notDeeper){
+                return evaluation;
+            }
+        }
+
+        double max = -Double.MAX_VALUE;
+
+        List<Branch> branchesToCheck = sortMoves(this.children);
+
+        for (Branch child : branchesToCheck) {
+            position.playMove(child.getMove());
+            double eval = child.mini(alpha, beta, depth-1);
+            position.reverseMove(child.getMove());
+
+            // Mate Distance Pruning
+            if (child.isMate()){
+                if (eval < beta) {
+                    beta = eval;
+                    if (alpha >= eval) return eval;
+                }
+            }
+            if (eval > max) {
+                max = eval;
+                bestChild = child;
+            }
+            if (max > alpha) {
+                alpha = max;
+            }
+            if (alpha >= beta) {
+                if (parent != null) {
+                    boolean isNew = true;
+                    for (Move killerMove : this.parent.killerMoves) {
+                        if (Move.isEqual(child.getMove(), killerMove)){
+                            isNew = false;
+                            break;
+                        }
+                    }
+                    if (isNew) this.parent.getKillerMoves().add(child.move);
+                }
+                if (!child.isKiller()){
+                    if (!child.isCapture())
+                        updateHistory(depth, child.move.getFromPiece(), child.move.getToPositionX(), child.move.getToPositionY(), true);
+                    else updateTake(depth, child.move.getFromPiece(), child.move.getToPositionX(), child.move.getToPositionY(), true);
+                }
+                break; // Beta cutoff
+            }
+
+            // Apply penalty.
+
+            if (!child.isKiller()){
+                if (!child.isCapture())
+                    updateHistory(depth, child.move.getFromPiece(), child.move.getToPositionX(), child.move.getToPositionY(), false);
+                else updateTake(depth, child.move.getFromPiece(), child.move.getToPositionX(), child.move.getToPositionY(), false);
+            }
+        }
+
+        this.evaluation = max;
+
+        // This is a mate-position, so we must not search deeper.
+        if (isMate()) {
+            this.notDeeper = true;
+        }
+
+        return max;
+    }
 
     public double mini(double alpha, double beta, int depth) {
 
@@ -281,7 +479,7 @@ public class Branch {
         }
         // If it's a leaf node, perform the evaluation directly
         if (depth == 0){
-            return evaluate();
+            return qSearch();
         }
 
         if (children.isEmpty()) {
@@ -293,7 +491,7 @@ public class Branch {
 
         double min = Double.MAX_VALUE;
 
-        List<Branch> branchesToCheck = sortMoves();
+        List<Branch> branchesToCheck = sortMoves(this.children);
 
         for (Branch child : branchesToCheck) {
             position.playMove(child.getMove());
@@ -302,13 +500,9 @@ public class Branch {
 
             // Mate Distance Pruning
             if (child.isMate()){
-                if (eval < beta) {
-                    beta = eval;
-                    if (alpha >= eval) return eval;
-                }
-                if (-eval > alpha) {
-                    alpha = -eval;
-                    if (beta <= -eval) return -eval;
+                if (eval > alpha) {
+                    alpha = eval;
+                    if (beta <= eval) return eval;
                 }
             }
 
@@ -357,6 +551,34 @@ public class Branch {
         return min;
     }
 
+    /*
+    public void negGenerateChildren() {
+        // Generate the child branches based on all possible moves if no children exist
+        if (children.isEmpty()) {
+            List<Move> possibleMoves = position.getPossibleMovesBoard(position.isActiveWhite());
+            if (notDeeper){
+                return;
+            }
+            if (possibleMoves.isEmpty()){
+                this.notDeeper = true;
+                byte[] kingPos = position.isActiveWhite() ? position.getKingPosWhite() : position.getKingPosBlack();
+                if (position.isAttacked(kingPos[0], kingPos[1], position.isActiveWhite())){
+                    double factor = position.isActiveWhite() ? 1 : -1;
+                    evaluation = (MATE_VALUE-depth) * factor;
+                }
+                else {
+                    evaluation = 0;
+                }
+            }
+            else {
+                for (Move possibleMove : possibleMoves){
+                    children.add(new Branch(possibleMove, this, this.position, this.engine));
+                }
+            }
+        }
+    }
+     */
+
     public void generateChildren() {
         // Generate the child branches based on all possible moves if no children exist
         if (children.isEmpty()) {
@@ -377,6 +599,32 @@ public class Branch {
             else {
                 for (Move possibleMove : possibleMoves){
                     children.add(new Branch(possibleMove, this, this.position, this.engine));
+                }
+            }
+        }
+    }
+
+    public void generateCaptureChildren() {
+        // Generate the child branches based on all possible captures if no children exist
+        if (children.isEmpty()) {
+            List<Move> possibleMoves = position.getPossibleMovesBoard(position.isActiveWhite());
+            if (notDeeper){
+                return;
+            }
+            if (possibleMoves.isEmpty()){
+                this.notDeeper = true;
+                byte[] kingPos = position.isActiveWhite() ? position.getKingPosWhite() : position.getKingPosBlack();
+                if (position.isAttacked(kingPos[0], kingPos[1], position.isActiveWhite())){
+                    evaluation = position.isActiveWhite() ? -(MATE_VALUE-depth) : (MATE_VALUE-depth);
+                }
+                else {
+                    evaluation = 0;
+                }
+            }
+            else {
+                for (Move possibleMove : possibleMoves){
+                    if (possibleMove.getToPiece() != 0)
+                        children.add(new Branch(possibleMove, this, this.position, this.engine));
                 }
             }
         }

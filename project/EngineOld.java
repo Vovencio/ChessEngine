@@ -413,6 +413,11 @@ public class EngineOld {
         enginePosition.loadFEN(position.generateFEN());
         Branch root = new Branch(enginePosition, this);
 
+        if (enginePosition.getPossibleMovesBoard(enginePosition.isActiveWhite()).isEmpty()) {
+            System.out.println("No moves available!");
+            return null;
+        }
+
         for (int d = 1; d <= depth; d+=1){
             if (position.isActiveWhite()) root.maxi(-Double.MAX_VALUE, Double.MAX_VALUE, d);
             else root.mini(-Double.MAX_VALUE, Double.MAX_VALUE, d);

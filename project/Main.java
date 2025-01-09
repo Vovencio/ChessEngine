@@ -477,14 +477,14 @@ public class Main {
                 int depth = Integer.parseInt(parts[1]);
                 System.out.println("Best move command received with depth: " + depth);
                 Branch best = engine.generateBestMove(depth, mainPosition);
-                System.out.printf("Best move is " + best.getMove().toString() + ", eval: %.3f" + ".%n", best.getEvaluation());
+                if (best != null) System.out.printf("Best move is " + best.getMove().toString() + ", eval: %.3f" + ".%n", best.getEvaluation());
             } catch (NumberFormatException e) {
                 System.out.println("Invalid depth value: " + parts[1]);
             }
         } else {
             System.out.println("Best move command received with default depth (4).");
             Branch best = engine.generateBestMove(4, mainPosition);
-            System.out.printf("Best move at depth 4 is " + best.getMove().toString() + ", eval: %.3f" + ".%n", best.getEvaluation());
+            if (best != null) System.out.printf("Best move at depth 4 is " + best.getMove().toString() + ", eval: %.3f" + ".%n", best.getEvaluation());
         }
 
         System.out.println(Branch.evaluationCount);
