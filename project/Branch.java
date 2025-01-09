@@ -11,6 +11,9 @@ import java.util.Comparator;
 
 public class Branch {
 
+    static final double MATE_VALUE = 1000_000;
+    static final double MATE_THRES = 900_000;
+
     static final int MAX_HISTORY = Integer.MAX_VALUE;
 
     public static int[][][] historyTable;
@@ -214,6 +217,18 @@ public class Branch {
             position.playMove(child.getMove());
             double eval = child.mini(alpha, beta, depth-1);
             position.reverseMove(child.getMove());
+
+            // Mate Distance Pruning
+            if (child.isMate()){
+                if (eval < beta) {
+                    beta = eval;
+                    if (alpha >= eval) return eval;
+                }
+                if (-eval > alpha) {
+                    alpha = -eval;
+                    if (beta <= -eval) return -eval;
+                }
+            }
             if (eval > max) {
                 max = eval;
                 bestChild = child;
@@ -250,6 +265,12 @@ public class Branch {
         }
 
         this.evaluation = max;
+
+        // This is a mate-position, so we must not search deeper.
+        if (isMate()) {
+            this.notDeeper = true;
+        }
+
         return max;
     }
 
@@ -278,6 +299,18 @@ public class Branch {
             position.playMove(child.getMove());
             double eval = child.maxi(alpha, beta, depth-1);
             position.reverseMove(child.getMove());
+
+            // Mate Distance Pruning
+            if (child.isMate()){
+                if (eval < beta) {
+                    beta = eval;
+                    if (alpha >= eval) return eval;
+                }
+                if (-eval > alpha) {
+                    alpha = -eval;
+                    if (beta <= -eval) return -eval;
+                }
+            }
 
             if (eval < min) {
                 min = eval;
@@ -315,6 +348,12 @@ public class Branch {
         }
 
         this.evaluation = min;
+
+        // This is a mate-position, so we must not search deeper.
+        if (isMate()) {
+            this.notDeeper = true;
+        }
+
         return min;
     }
 
@@ -329,7 +368,7 @@ public class Branch {
                 this.notDeeper = true;
                 byte[] kingPos = position.isActiveWhite() ? position.getKingPosWhite() : position.getKingPosBlack();
                 if (position.isAttacked(kingPos[0], kingPos[1], position.isActiveWhite())){
-                    evaluation = position.isActiveWhite() ? -(1000-depth) : (1000-depth);
+                    evaluation = position.isActiveWhite() ? -(MATE_VALUE-depth) : (MATE_VALUE-depth);
                 }
                 else {
                     evaluation = 0;
@@ -371,8 +410,7 @@ public class Branch {
         this.notDeeper = notDeeper;
     }
 
-    // Removed the `isLeaf()` method, now we use children.isEmpty() directly
-    public boolean hasChildren() {
-        return !children.isEmpty();
+    public boolean isMate(){
+        return Math.abs(this.evaluation) > MATE_THRES;
     }
 }

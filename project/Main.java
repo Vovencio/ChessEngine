@@ -50,7 +50,7 @@ public class Main {
         System.out.println("╋╋╋╋╋╋╋╋╋╋╋╋╋┏━┛┃╋╋╋╋╋╋╋╋╋┏━┛┃");
         System.out.println("╋╋╋╋╋╋╋╋╋╋╋╋╋┗━━┛╋╋╋╋╋╋╋╋╋┗━━┛");
         printLines();
-        System.out.println("Welcome to my Engine, sweetheart.");
+        System.out.println("Welcome to my Engine!");
 
         while (true) {
             printLines();
