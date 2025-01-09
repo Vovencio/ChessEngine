@@ -298,19 +298,20 @@ public class EngineOld {
         return eval;
     }
 
-    public static double getBaseEval(byte content){
-        double factor = (content > 6) ? -1 : 1;
+    public static int getBaseEval(byte content){
+        int factor = (content > 6) ? -1 : 1;
 
         boolean isBlack = (content > 6);
 
         byte piece = isBlack ? (byte) (content - 6) : content;
 
         return switch (piece) {
-            case 1 -> 1 * factor;
-            case 2 -> 2.8 * factor;
-            case 3 -> 3.3 * factor;
+            case 1 -> factor;
+            case 2 -> 3 * factor;
+            case 3 -> 4 * factor;
             case 4 -> 5 * factor;
             case 5 -> 9 * factor;
+            case 6 -> 69 * factor;
             default -> 0;
         };
     }
@@ -407,14 +408,15 @@ public class EngineOld {
 
     public Branch generateBestMove(int depth, Position position){
         Main.initializeHistoryTable();
-        Branch.evals = 0;
+        Branch.evaluationCount = 0;
         Branch.currentSearch = depth;
         enginePosition.loadFEN(position.generateFEN());
         Branch root = new Branch(enginePosition, this);
 
-        for (int d = 1; d <= depth; d++){
+        for (int d = 1; d <= depth; d+=1){
             if (position.isActiveWhite()) root.maxi(-Double.MAX_VALUE, Double.MAX_VALUE, d);
-            else root.mini(-Double.MAX_VALUE, Double.MAX_VALUE, d);
+            //else root.mini(-Double.MAX_VALUE, Double.MAX_VALUE, d);
+            System.out.printf("Engine reached depth %,d. With %,d evaluations.%n", d, Branch.evaluationCount);
         }
 
         return root.getBestChild();

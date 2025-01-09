@@ -487,7 +487,7 @@ public class Main {
             System.out.printf("Best move at depth 4 is " + best.getMove().toString() + ", eval: %.3f" + ".%n", best.getEvaluation());
         }
 
-        System.out.println(Branch.evals);
+        System.out.println(Branch.evaluationCount);
     }
 
     // Handle the 'execute' command to run multiple commands
@@ -669,23 +669,22 @@ public class Main {
     }
 
     public static void printTrainingData(int[] data) {
-        // Print the first 768 numbers in packs of 8 with newlines every 64 numbers
-        for (int i = 0; i < 768; i++) {
-            System.out.print(data[i] + " ");
+        // Print the first 64 numbers in rows of 8
+        System.out.println("Board Data:");
+        for (int i = 0; i < 64; i++) {
+            // Use String.format to align numbers in a 4-character wide column
+            System.out.print(String.format("%4d", data[i]));
             if ((i + 1) % 8 == 0) {
                 System.out.println(); // New line after every 8 numbers
             }
-            if ((i + 1) % 64 == 0) {
-                System.out.println(); // New line after every 64 numbers (end of row)
-            }
         }
 
-        // Print the last 7 numbers separately (indices 768 to 774)
-        System.out.println("Last 7 numbers:");
-        for (int i = 768; i < 775; i++) {
-            System.out.print(data[i] + " ");
+        // Print the last 7 numbers (metadata)
+        System.out.println("\nMetadata:");
+        for (int i = 64; i < 70; i++) {
+            System.out.print(String.format("%4d", data[i]));
         }
-        System.out.println(); // New line after last 7 numbers
+        System.out.println(); // New line after metadata
     }
 
     private static void handleEngineDataCommand(){

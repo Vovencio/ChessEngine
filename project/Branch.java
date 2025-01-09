@@ -15,6 +15,7 @@ public class Branch {
 
     public static int[][][] historyTable;
     public static int[][][] takeTable;
+    public static long takeCount;
 
     public static int currentSearch;
 
@@ -30,7 +31,17 @@ public class Branch {
         historyTable[piece-1][x][y] += clampedBonus - historyTable[piece-1][x][y] * Math.abs(clampedBonus) / MAX_HISTORY;
     }
 
-    static public int evals;
+    static void updateTake (int depth, byte piece, byte x, byte y, boolean cutOff){
+        takeCount += depth;
+
+        int bonus = (cutOff) ? depth * depth : 0; // (int) (-depth / 1.8);
+
+        int clampedBonus = clamp(bonus, -MAX_HISTORY, MAX_HISTORY);
+
+        takeTable[piece-1][x][y] += clampedBonus - historyTable[piece-1][x][y] * Math.abs(clampedBonus) / MAX_HISTORY;
+    }
+
+    static public int evaluationCount;
 
     private static double BASE_EVAL = -69;
     private double evaluation = BASE_EVAL;
@@ -110,7 +121,7 @@ public class Branch {
     }
 
     private double evaluate(){
-        evals++;
+        evaluationCount++;
         position.playMove(move); // Apply the move
         this.evaluation = engine.evalBoard(); // Evaluate the board after the move
         position.reverseMove(move);
@@ -126,6 +137,7 @@ public class Branch {
         List<Branch> normalBranches = new ArrayList<>();
 
         List<Branch> superCaptureBranches = new ArrayList<>();
+        List<Branch> awfulCaptureBranches = new ArrayList<>();
 
         boolean killerAvailable = false;
         if (this.parent != null) {
@@ -152,8 +164,9 @@ public class Branch {
                     child.setCapture(true);
                     int capScore = EngineOld.getWorthInt(child.move.getToPiece()) - EngineOld.getWorthInt(child.move.getFromPiece());
                     child.score = takeTable[child.move.getFromPiece()-1][child.move.getToPositionX()][child.move.getToPositionY()];
-                    if (capScore > 2) {
-                        superCaptureBranches.add(child);
+                    if (capScore > 2) superCaptureBranches.add(child);
+                    else if (capScore < -7) {
+                        awfulCaptureBranches.add(child);
                     }
                     else captureBranches.add(child);
                 } else {
@@ -169,13 +182,14 @@ public class Branch {
         branchesToCheck.addAll(superCaptureBranches);
         branchesToCheck.addAll(killerBranches);
         branchesToCheck.addAll(captureBranches);
+        branchesToCheck.addAll(awfulCaptureBranches);
         branchesToCheck.addAll(normalBranches);
 
         return branchesToCheck;
     }
 
     public double maxi(double alpha, double beta, int depth) {
-        byte[] kingPos = (position.isActiveWhite()) ? position.getKingPosWhite() : position.getKingPosBlack();
+        // byte[] kingPos = (position.isActiveWhite()) ? position.getKingPosWhite() : position.getKingPosBlack();
 
         if (notDeeper){
             return evaluation;
@@ -221,11 +235,18 @@ public class Branch {
                 if (!child.isKiller()){
                     if (!child.isCapture())
                         updateHistory(depth, child.move.getFromPiece(), child.move.getToPositionX(), child.move.getToPositionY(), true);
-                    else takeTable[child.move.getFromPiece()-1][child.move.getToPositionX()][child.move.getToPositionY()] += depth*depth;
+                    else updateTake(depth, child.move.getFromPiece(), child.move.getToPositionX(), child.move.getToPositionY(), true);
                 }
                 break; // Beta cutoff
             }
-            else updateHistory(depth, child.move.getFromPiece(), child.move.getToPositionX(), child.move.getToPositionY(), false);
+
+            // Apply penalty.
+
+            if (!child.isKiller()){
+                if (!child.isCapture())
+                    updateHistory(depth, child.move.getFromPiece(), child.move.getToPositionX(), child.move.getToPositionY(), false);
+                else updateTake(depth, child.move.getFromPiece(), child.move.getToPositionX(), child.move.getToPositionY(), false);
+            }
         }
 
         this.evaluation = max;
@@ -279,11 +300,18 @@ public class Branch {
                 if (!child.isKiller()){
                     if (!child.isCapture())
                         updateHistory(depth, child.move.getFromPiece(), child.move.getToPositionX(), child.move.getToPositionY(), true);
-                    else takeTable[child.move.getFromPiece()-1][child.move.getToPositionX()][child.move.getToPositionY()] += depth*depth;
+                    else updateTake(depth, child.move.getFromPiece(), child.move.getToPositionX(), child.move.getToPositionY(), true);
                 }
                 break; // Alpha cutoff
             }
-            else updateHistory(depth, child.move.getFromPiece(), child.move.getToPositionX(), child.move.getToPositionY(), false);
+
+            // Apply penalty.
+
+            if (!child.isKiller()){
+                if (!child.isCapture())
+                    updateHistory(depth, child.move.getFromPiece(), child.move.getToPositionX(), child.move.getToPositionY(), false);
+                else updateTake(depth, child.move.getFromPiece(), child.move.getToPositionX(), child.move.getToPositionY(), false);
+            }
         }
 
         this.evaluation = min;

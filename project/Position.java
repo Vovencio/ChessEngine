@@ -240,7 +240,6 @@ public class Position {
         System.out.println();
     }
 
-
     /**
      * Maps piece content to a type for display purposes.
      *
@@ -980,35 +979,30 @@ public class Position {
 
         /*
         * The following byte array is done as follows:
-        * First 12*64 is the bitboard (768).
+        * First 64 are the board.
         * The next four are castling rights.
         * The next two are en passant squares.
         * The last one is the 50-move clock.
         * */
 
-        int[] data = new int[775];
+        int[] data = new int[70];
 
         for (byte x = 0; x < 8; x++){
             for (byte y = 0; y < 8; y++){
                 byte content = trainingPosition.getSquare(x, y).getContent();
                 if (content != 0){
-                    int index = x + y * 8 + 64 * (trainingPosition.getSquare(x, y).getContent() - 1);
-                    data[index] = 1;
-                    if (index > 767){
-                        System.err.println("The training index function ain't cooking..");
-                    }
+                    int index = x + y * 8;
+                    data[index] = EngineOld.getBaseEval(content);
                 }
             }
         }
 
-        if (trainingPosition.canWhiteCastleKing) data[768] = 1;
-        if (trainingPosition.canWhiteCastleQueen) data[769] = 1;
-        if (trainingPosition.canBlackCastleKing) data[770] = 1;
-        if (trainingPosition.canBlackCastleQueen) data[771] = 1;
+        if (trainingPosition.canWhiteCastleKing) data[64] = 1;
+        if (trainingPosition.canWhiteCastleQueen) data[65] = 1;
+        if (trainingPosition.canBlackCastleKing) data[66] = 1;
+        if (trainingPosition.canBlackCastleQueen) data[67] = 1;
 
-        data[772] = trainingPosition.getEnPassant()[0]; data[773] = trainingPosition.getEnPassant()[1];
-
-        data[774] = trainingPosition.getHalfMoveClock();
+        data[68] = trainingPosition.getEnPassant()[0]; data[69] = trainingPosition.getEnPassant()[1];
 
         return data;
     }
