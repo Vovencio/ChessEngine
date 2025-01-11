@@ -514,7 +514,7 @@ public class Main {
             if (engineTurn){
                 // Engine's turn
                 System.out.println("Engine is thinking...");
-                Branch bestMove = engine.generateBestMove(6, mainPosition);
+                Branch bestMove = engine.generateBestMove(7, mainPosition);
                 if (bestMove != null) {
                     Move engineMove = bestMove.getMove();
                     mainPosition.playMove(engineMove);
@@ -668,6 +668,7 @@ public class Main {
 
     private static void handleFlipCommand(){
         mainPosition = mainPosition.flipColor();
+        System.out.println("Board Flipped!");
     }
 
     public static void printTrainingData(int[] data) {

@@ -407,7 +407,6 @@ public class EngineOld {
     }
 
     public Branch generateBestMove(int depth, Position position){
-        Branch.currentSearch = depth;
         Main.initializeHistoryTable();
         Branch.evaluationCount = 0;
         enginePosition.loadFEN(position.generateFEN());
@@ -419,8 +418,9 @@ public class EngineOld {
         }
 
         for (int d = 1; d <= depth; d+=1){
-            if (position.isActiveWhite()) root.maxi(-Double.MAX_VALUE, Double.MAX_VALUE, d, true);
-            else root.mini(-Double.MAX_VALUE, Double.MAX_VALUE, d, true);
+            Branch.currentSearch = d;
+            root.negaMax(-Double.MAX_VALUE, Double.MAX_VALUE, d, true);
+            //else root.mini(-Double.MAX_VALUE, Double.MAX_VALUE, d, true);
             System.out.printf("Engine reached depth %,d. With %,d evaluations.%n", d, Branch.evaluationCount);
         }
 
