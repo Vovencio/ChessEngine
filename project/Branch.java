@@ -6,7 +6,7 @@ import java.util.Comparator;
  * Branch class, which demonstrates a chess board.
  *
  * @author Vovencio
- * @version 01/01/2024
+ * @version 01/11/2024
  */
 
 public class Branch {
@@ -126,7 +126,6 @@ public class Branch {
     }
 
     private double evaluate(){
-        evaluationCount++;
         if (parent != null){
             position.playMove(move); // Apply the move
             this.evaluation = engine.evalBoard(); // Evaluate the board after the move
@@ -138,8 +137,6 @@ public class Branch {
     }
 
     public List<Branch> sortMoves(List<Branch> toSort){
-
-        if (!toSort.isEmpty()) return toSort;
 
         // Killer Branches are getting checked because these caused a cutoff in a sibling position.
         List<Branch> branchesToCheck = new ArrayList<>();
@@ -199,91 +196,6 @@ public class Branch {
 
         return branchesToCheck;
     }
-
-    /*
-    public double negaMax(double alpha, double beta, int depth) {
-        // byte[] kingPos = (position.isActiveWhite()) ? position.getKingPosWhite() : position.getKingPosBlack();
-
-        if (notDeeper){
-            return evaluation;
-        }
-        // If it's a leaf node, perform the evaluation directly
-        if (depth == 0){
-            return negEvaluate();
-        }
-
-        if (children.isEmpty()) {
-            this.negGenerateChildren();
-            if (notDeeper){
-                return evaluation;
-            }
-        }
-
-        double max = -Double.MAX_VALUE;
-
-        List<Branch> branchesToCheck = sortMoves();
-
-        for (Branch child : branchesToCheck) {
-            position.playMove(child.getMove());
-            double eval = -child.negaMax(-beta, -alpha, depth-1);
-            position.reverseMove(child.getMove());
-
-            // Mate Distance Pruning
-            if (child.isMate()){
-                if (eval < beta) {
-                    beta = eval;
-                    if (alpha >= eval) return eval;
-                }
-                if (-eval > alpha) {
-                    alpha = -eval;
-                    if (beta <= -eval) return -eval;
-                }
-            }
-            if (eval > max) {
-                max = eval;
-                bestChild = child;
-            }
-            if (max > alpha) {
-                alpha = max;
-            }
-            if (alpha >= beta) {
-                if (parent != null) {
-                    boolean isNew = true;
-                    for (Move killerMove : this.parent.killerMoves) {
-                        if (Move.isEqual(child.getMove(), killerMove)){
-                            isNew = false;
-                            break;
-                        }
-                    }
-                    if (isNew) this.parent.getKillerMoves().add(child.move);
-                }
-                if (!child.isKiller()){
-                    if (!child.isCapture())
-                        updateHistory(depth, child.move.getFromPiece(), child.move.getToPositionX(), child.move.getToPositionY(), true);
-                    else updateTake(depth, child.move.getFromPiece(), child.move.getToPositionX(), child.move.getToPositionY(), true);
-                }
-                break; // Beta cutoff
-            }
-
-            // Apply penalty.
-
-            if (!child.isKiller()){
-                if (!child.isCapture())
-                    updateHistory(depth, child.move.getFromPiece(), child.move.getToPositionX(), child.move.getToPositionY(), false);
-                else updateTake(depth, child.move.getFromPiece(), child.move.getToPositionX(), child.move.getToPositionY(), false);
-            }
-        }
-
-        this.evaluation = max;
-
-        // This is a mate-position, so we must not search deeper.
-        if (isMate()) {
-            this.notDeeper = true;
-        }
-
-        return max;
-    }
-     */
 
     public double qMaxi(int depth, double alpha, double beta) {
         double startEval = evaluate();
@@ -432,7 +344,8 @@ public class Branch {
     static final double NMP_MARGIN = 3;
 
     private int reducedDepth(int d){
-        return Math.max(d/3, 0);
+        return Math.max(d-3,0);
+        //return Math.max(d/3, 0);
     }
 
     public double negaMax(double alpha, double beta, int depth, boolean checkPruning) {
@@ -453,12 +366,10 @@ public class Branch {
             }
         }
 
-        /*
-        if (checkPruning && depth > 1 && !this.isCuttoff){
+        if (checkPruning && depth > 2){
             byte[] kingPos = position.isActiveWhite() ? position.getKingPosWhite() : position.getKingPosBlack();
             if (!position.isAttacked(kingPos[0], kingPos[1], position.isActiveWhite())
                     && !engine.isOnlyPawns()
-                    && engine.evalBoard() < beta + NMP_MARGIN
                     && position.getPossibleMovesBoard(position.isActiveWhite()).size() > 3) {
 
                 int r = reducedDepth(depth); // NMP reduction
@@ -467,24 +378,15 @@ public class Branch {
                 NullMove nullMove = new NullMove(position);
                 Branch nullBranch = new Branch(nullMove, this, this.position, this.engine);
                 position.playMove(nullMove);
-                double v = nullBranch.mini(beta - 1, beta, r, false); // Beta window for maximizing
+                double v = -nullBranch.negaMax(-beta, -beta + 1, r, false); // Beta window for maximizing
                 position.reverseMove(nullMove);
 
                 if (v >= beta) {
-                    this.setCuttoff(true);
+                    this.evaluation = v;
                     return v;
                 }
             }
         }
-        if (this.isCuttoff()){
-            NullMove nullMove = new NullMove(position);
-            Branch nullBranch = new Branch(nullMove, this, this.position, this.engine);
-            double v = nullBranch.mini(beta - 1, beta, reducedDepth(depth), false);
-            position.reverseMove(nullMove);
-            return v;
-        }
-
-         */
 
         double max = -Double.MAX_VALUE;
 

@@ -249,6 +249,7 @@ public class EngineOld {
     }
 
     public double evalBoard() {
+        Branch.evaluationCount++;
         double eval = 0;
         byte pawns = 0;
         byte blackPawns = 0;

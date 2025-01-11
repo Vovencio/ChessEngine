@@ -14,7 +14,7 @@ import java.util.Arrays;
  * Main class, where everything is sewed together.
  *
  * @author Vovencio
- * @version 01/01/2024
+ * @version 01/11/2024
  */
 public class Main {
 
