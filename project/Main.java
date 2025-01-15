@@ -394,7 +394,7 @@ public class Main {
                     // Create the output JSON object
                     JSONObject outputJson = new JSONObject();
                     outputJson.put("data", trainingData);
-                    outputJson.put("cp", cp);
+                    outputJson.put("cp", cp * (mainPosition.isActiveWhite() ? 1 : -1));
 
                     // Write the output JSON to the file
                     writer.write(outputJson.toString());
