@@ -30,7 +30,7 @@ public class Branch {
 
     static void updateHistory(int depth, byte piece, byte x, byte y, boolean cutOff){
         int bonus = (cutOff) ? depth * depth : 0; // (int) (-depth / 1.8);
-
+        
         int clampedBonus = clamp(bonus, -MAX_HISTORY, MAX_HISTORY);
 
         historyTable[piece-1][x][y] += clampedBonus - historyTable[piece-1][x][y] * Math.abs(clampedBonus) / MAX_HISTORY;

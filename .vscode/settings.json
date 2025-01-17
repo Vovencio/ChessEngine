@@ -1,0 +1,7 @@
+{
+    "java.project.referencedLibraries": [
+        "lib/**/*.jar",
+        "d:\\Personal\\ProgramingProjects\\JavaProjects\\ChessEngine\\libs\\json.jar",
+        "d:\\Personal\\ProgramingProjects\\JavaProjects\\ChessEngine\\libs\\Raylib-J.jar"
+    ]
+}
