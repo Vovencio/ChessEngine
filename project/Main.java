@@ -19,7 +19,7 @@ import java.util.Arrays;
 public class Main {
 
     private static Position mainPosition;
-    private static Engine engine;
+    private static EngineAlg engine;
     private static double[][][] evalTable;
 
     static String evalsFilePath;
@@ -487,7 +487,7 @@ public class Main {
             }
         } else {
             System.out.println("Best move command received with default depth (4).");
-            Branch best = engine.generateBestMove(4, mainPosition);
+            Branch best = engine.generateBestMoveTime(40, mainPosition, 5000);
             if (best != null) System.out.printf("Best move at depth 4 is " + best.getMove().toString() + ", eval: %.3f" + ".%n", best.getEvaluation());
         }
 
@@ -516,7 +516,7 @@ public class Main {
             if (engineTurn){
                 // Engine's turn
                 System.out.println("Engine is thinking...");
-                Branch bestMove = engine.generateBestMove(6, mainPosition);
+                Branch bestMove = engine.generateBestMoveTime(40, mainPosition, 5000);
                 if (bestMove != null) {
                     Move engineMove = bestMove.getMove();
                     mainPosition.playMove(engineMove);

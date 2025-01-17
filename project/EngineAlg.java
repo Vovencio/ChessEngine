@@ -1,3 +1,5 @@
+import java.util.concurrent.*;
+
 /**
  * Engine Class used for all computing.
  *
@@ -387,6 +389,61 @@ public class EngineAlg extends Engine {
             System.out.printf("Engine reached depth %,d. With %,d evaluations.%n", d, Branch.evaluationCount);
         }
 
+        return root.getBestChild();
+    }
+
+    // Generate the best move with time-limited search
+    public Branch generateBestMoveTime(int depth, Position position, long maxTimeMillis) {
+        Main.initializeHistoryTable();
+        Branch.evaluationCount = 0;
+        enginePosition.loadFEN(position.generateFEN());
+        Branch root = new Branch(enginePosition, this);
+
+        if (enginePosition.getPossibleMovesBoard(enginePosition.isActiveWhite()).isEmpty()) {
+            System.out.println("No moves available!");
+            return null;
+        }
+
+        ExecutorService executor = Executors.newSingleThreadExecutor(); // Single thread for each negaMax call
+        Branch bestBranch = null;
+        long startTime = System.currentTimeMillis(); // Start the timer
+
+        try {
+            for (int d = 1; d <= depth; d++) {
+                // Check if time limit has already elapsed
+                if (System.currentTimeMillis() - startTime >= maxTimeMillis) {
+                    System.out.printf("Time limit reached before starting depth %,d!%n", d);
+                    break;
+                }
+
+                int currentDepth = d; // Needed for lambda to avoid scope issues
+
+                // Submit negaMax task for current depth
+                Future<Double> future = executor.submit(() -> root.negaMax(-Double.MAX_VALUE, Double.MAX_VALUE, currentDepth, true));
+
+                try {
+                    // Wait for the result within the remaining time
+                    long timeRemaining = maxTimeMillis - (System.currentTimeMillis() - startTime);
+                    if (timeRemaining > 0) {
+                        future.get(timeRemaining, TimeUnit.MILLISECONDS);
+                        System.out.printf("Engine reached depth %,d. With %,d evaluations.%n", d, Branch.evaluationCount);
+                    } else {
+                        System.out.printf("No time remaining for depth %,d!%n", d);
+                        break;
+                    }
+                } catch (TimeoutException e) {
+                    System.out.printf("Timeout at depth %,d! Cancelling current search.%n", d);
+                    future.cancel(true); // Cancel the ongoing task
+                    break;
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            executor.shutdownNow(); // Clean up executor
+        }
+
+        // Return the best move found so far
         return root.getBestChild();
     }
 
