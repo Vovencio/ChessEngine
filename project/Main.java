@@ -19,16 +19,18 @@ import java.util.Arrays;
 public class Main {
 
     private static Position mainPosition;
-    private static EngineOld engine;
+    private static Engine engine;
     private static double[][][] evalTable;
 
     static String evalsFilePath;
     static String historyFilePath;
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
+        //JavaToPython.setUp();
+
         // loadConfig();
         mainPosition = new Position();
-        engine = new EngineOld();
+        engine = new EngineAlg();
 
         initializeHistoryTable();
 
@@ -514,7 +516,7 @@ public class Main {
             if (engineTurn){
                 // Engine's turn
                 System.out.println("Engine is thinking...");
-                Branch bestMove = engine.generateBestMove(7, mainPosition);
+                Branch bestMove = engine.generateBestMove(6, mainPosition);
                 if (bestMove != null) {
                     Move engineMove = bestMove.getMove();
                     mainPosition.playMove(engineMove);

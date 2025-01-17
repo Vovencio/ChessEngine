@@ -55,7 +55,7 @@ public class Branch {
     private Branch parent;
     private List<Branch> children;
     private final Position position;
-    private final EngineOld engine;
+    private final Engine engine;
     private boolean notDeeper = false;
 
     public int getScore() {
@@ -109,7 +109,7 @@ public class Branch {
         return bestChild;
     }
 
-    public Branch(Move move, Branch parent, Position position, EngineOld engine) {
+    public Branch(Move move, Branch parent, Position position, Engine engine) {
         this.move = move;
         this.parent = parent;
         this.position = position;
@@ -118,7 +118,7 @@ public class Branch {
         this.depth = parent.getDepth() + 1;
     }
 
-    public Branch(Position position, EngineOld engine) {
+    public Branch(Position position, Engine engine) {
         this.position = position;
         this.engine = engine;
         this.children = new ArrayList<>();
@@ -171,7 +171,7 @@ public class Branch {
             if (!child.isKiller()){
                 if (child.move.getToPiece() != 0) {
                     child.setCapture(true);
-                    int capScore = EngineOld.getWorthInt(child.move.getToPiece()) - EngineOld.getWorthInt(child.move.getFromPiece());
+                    int capScore = EngineAlg.getWorthInt(child.move.getToPiece()) - EngineAlg.getWorthInt(child.move.getFromPiece());
                     child.score = takeTable[child.move.getFromPiece()-1][child.move.getToPositionX()][child.move.getToPositionY()];
                     if (capScore > 2) superCaptureBranches.add(child);
                     else if (capScore < -7) {
@@ -228,7 +228,7 @@ public class Branch {
 
         for (Branch child : branchesToCheck) {
 
-            if (EngineOld.getWorthInt(child.move.getToPiece())-EngineOld.getWorthInt(child.move.getFromPiece()) < 0)
+            if (EngineAlg.getWorthInt(child.move.getToPiece())- EngineAlg.getWorthInt(child.move.getFromPiece()) < 0)
                 continue;
             if (child.isMate())
                 continue;
@@ -288,7 +288,7 @@ public class Branch {
         for (Branch child : branchesToCheck) {
             if (child.isMate())
                 continue;
-            if (EngineOld.getWorthInt(child.move.getToPiece()) - EngineOld.getWorthInt(child.move.getFromPiece()) < 0) {
+            if (EngineAlg.getWorthInt(child.move.getToPiece()) - EngineAlg.getWorthInt(child.move.getFromPiece()) < 0) {
                 continue;
             }
 
@@ -356,7 +356,7 @@ public class Branch {
         }
         // If it's a leaf node, perform the evaluation directly
         if (depth == 0){
-            return evaluate() * (position.isActiveWhite() ? -1 : 1); //return qSearch(alpha, beta); //qSearch(alpha, beta);
+            return evaluate(); //return qSearch(alpha, beta); //qSearch(alpha, beta);
         }
 
         if (children.isEmpty()) {

@@ -5,14 +5,7 @@
  * @version 01/01/2024
  */
 
-public class EngineOld {
-    public Position getEnginePosition() {
-        return enginePosition;
-    }
-
-    public void setEnginePosition(Position enginePosition) {
-        this.enginePosition = enginePosition;
-    }
+public class EngineAlg extends Engine {
 
     Position enginePosition;
 
@@ -243,11 +236,12 @@ public class EngineOld {
     static final double MB_FACTOR = 0.3;
     static final double BV_FACTOR = 0.9;
 
-    public EngineOld() {
+    public EngineAlg() {
         enginePosition = new Position();
         enginePosition.setupInitialBoard();
     }
 
+    @Override
     public double evalBoard() {
         Branch.evaluationCount++;
         double eval = 0;
@@ -273,7 +267,7 @@ public class EngineOld {
             }
         }
 
-        return eval;
+        return eval * (enginePosition.isActiveWhite() ? -1 : 1);
     }
 
     public double evalSquare(byte x, byte y, byte pawns, byte pawnsWhite, byte pawnsBlack) {
@@ -297,39 +291,6 @@ public class EngineOld {
         pieceUsedArray[content-1][x][y] += 1;
 
         return eval;
-    }
-
-    public static int getBaseEval(byte content){
-        int factor = (content > 6) ? -1 : 1;
-
-        boolean isBlack = (content > 6);
-
-        byte piece = isBlack ? (byte) (content - 6) : content;
-
-        return switch (piece) {
-            case 1 -> factor;
-            case 2 -> 3 * factor;
-            case 3 -> 4 * factor;
-            case 4 -> 5 * factor;
-            case 5 -> 9 * factor;
-            case 6 -> 69 * factor;
-            default -> 0;
-        };
-    }
-
-    public static int getWorthInt(byte content){
-        boolean isBlack = (content > 6);
-
-        byte piece = isBlack ? (byte) (content - 6) : content;
-
-        return switch (piece) {
-            case 1 -> 1;
-            case 2 -> 3;
-            case 3 -> 4;
-            case 4 -> 5;
-            case 5 -> 9;
-            default -> 0;
-        };
     }
 
     public double evalPawn(byte x, byte y, boolean isBlack) {
@@ -407,6 +368,7 @@ public class EngineOld {
         return Math.abs(kingPos[0] - x) + Math.abs(kingPos[1] - y);
     }
 
+    @Override
     public Branch generateBestMove(int depth, Position position){
         Main.initializeHistoryTable();
         Branch.evaluationCount = 0;
@@ -428,6 +390,7 @@ public class EngineOld {
         return root.getBestChild();
     }
 
+    @Override
     public double qSearch(int depth, Position position){
         Branch root = new Branch(enginePosition, this);
         return root.qSearch(-Double.MAX_VALUE, Double.MAX_VALUE);

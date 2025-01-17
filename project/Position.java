@@ -1,5 +1,4 @@
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -992,7 +991,7 @@ public class Position {
                 byte content = trainingPosition.getSquare(x, y).getContent();
                 if (content != 0){
                     int index = x + y * 8;
-                    data[index] = EngineOld.getBaseEval(content);
+                    data[index] = EngineAlg.getBaseEval(content);
                 }
             }
         }
