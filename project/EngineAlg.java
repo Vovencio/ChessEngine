@@ -4,7 +4,7 @@ import java.util.concurrent.*;
  * Engine Class used for all computing.
  *
  * @author Vovencio
- * @version 01/01/2024
+ * @version 01/24/2024
  */
 
 public class EngineAlg extends Engine {
@@ -450,7 +450,7 @@ public class EngineAlg extends Engine {
     @Override
     public double qSearch(int depth, Position position){
         Branch root = new Branch(enginePosition, this);
-        return root.qSearch(-Double.MAX_VALUE, Double.MAX_VALUE);
+        return root.qMaxi(10, -Double.MAX_VALUE, Double.MAX_VALUE);
     }
 
     public boolean isOnlyPawns(){

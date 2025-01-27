@@ -53,7 +53,7 @@ public class EngineAI extends Engine {
     @Override
     public double qSearch(int depth, Position position){
         Branch root = new Branch(enginePosition, this);
-        return root.qSearch(-Double.MAX_VALUE, Double.MAX_VALUE);
+        return root.qMaxi(10, -Double.MAX_VALUE, Double.MAX_VALUE);
     }
 
     public boolean isOnlyPawns(){

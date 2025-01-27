@@ -6,28 +6,71 @@ import java.util.Comparator;
  * Branch class, which demonstrates a chess board.
  *
  * @author Vovencio
- * @version 01/11/2024
+ * @version 01/24/2024
  */
 
 public class Branch {
+    // Amount of evaluated positions in the current search
+    static public int evaluationCount;
 
+    //#region Engine Parameters & Stuff
     static final double MATE_VALUE = 1000_000;
     static final double MATE_THRES = 900_000;
 
+    private static final double BASE_EVAL = -69;
     static final int MAX_HISTORY = Integer.MAX_VALUE;
+    static final double NMP_MARGIN = 3;
 
+    private int reducedDepth(int d){
+        return Math.max(d-3,0);
+        //return Math.max(d/3, 0);
+    }
+    //#endregion
+
+    // Tables
     public static int[][][] historyTable;
     public static int[][][] takeTable;
-    public static long takeCount;
 
-    private boolean isCuttoff = false;
+    //#region Attributes
+    private final Position position;
+    private final Engine engine;
 
+    private Move move;
+    private Branch parent;
+
+    private List<Branch> children;
+
+    // Killer moves for the killer move heuristic
+    private List<Move> killerMoves = new ArrayList<>();
+
+    // Current depth (0 for frontier nodes)
+    private int depth;
+
+    // Best child
+    private Branch bestChild;
+
+    // Score for move ordering
+    private int score;
+
+    private double evaluation = BASE_EVAL;
+
+    private boolean isNMPCut = false;
+
+    // Flag used for positions, where deeper searches are futile (e.g. mates)
+    private boolean notDeeper = false;
+
+    // The depth of the current search, can be used for NMP
     public static int currentSearch;
+
+    private boolean isKiller;
+    private boolean isCapture;
+    // #endregion
 
     public static int clamp(int value, int min, int max) {
         return Math.max(min, Math.min(max, value));
     }
 
+    // #region Table Updates
     static void updateHistory(int depth, byte piece, byte x, byte y, boolean cutOff){
         int bonus = (cutOff) ? depth * depth : 0; // (int) (-depth / 1.8);
         
@@ -37,8 +80,6 @@ public class Branch {
     }
 
     static void updateTake (int depth, byte piece, byte x, byte y, boolean cutOff){
-        takeCount += depth;
-
         int bonus = (cutOff) ? depth * depth : 0; // (int) (-depth / 1.8);
 
         int clampedBonus = clamp(bonus, -MAX_HISTORY, MAX_HISTORY);
@@ -46,69 +87,9 @@ public class Branch {
         takeTable[piece-1][x][y] += clampedBonus - historyTable[piece-1][x][y] * Math.abs(clampedBonus) / MAX_HISTORY;
     }
 
-    static public int evaluationCount;
+    //#endregion
 
-    private static double BASE_EVAL = -69;
-    private double evaluation = BASE_EVAL;
-
-    private Move move;
-    private Branch parent;
-    private List<Branch> children;
-    private final Position position;
-    private final Engine engine;
-    private boolean notDeeper = false;
-
-    public int getScore() {
-        return score;
-    }
-
-    public void setScore(int score) {
-        this.score = score;
-    }
-
-    private int score;
-
-    public boolean isKiller() {
-        return isKiller;
-    }
-
-    public void setKiller(boolean killer) {
-        isKiller = killer;
-    }
-
-    public boolean isCapture() {
-        return isCapture;
-    }
-
-    public void setCapture(boolean capture) {
-        isCapture = capture;
-    }
-
-    private boolean isKiller;
-    private boolean isCapture;
-
-    public List<Move> getKillerMoves() {
-        return killerMoves;
-    }
-
-    private List<Move> killerMoves = new ArrayList<>();
-
-    public int getDepth() {
-        return depth;
-    }
-
-    public void setDepth(int depth) {
-        this.depth = depth;
-    }
-
-    private int depth;
-
-    private Branch bestChild;
-
-    public Branch getBestChild() {
-        return bestChild;
-    }
-
+    //#region Constructors
     public Branch(Move move, Branch parent, Position position, Engine engine) {
         this.move = move;
         this.parent = parent;
@@ -124,6 +105,7 @@ public class Branch {
         this.children = new ArrayList<>();
         this.depth = 0;
     }
+    //#endregion
 
     private double evaluate(){
         if (parent != null){
@@ -136,6 +118,7 @@ public class Branch {
         return evaluation;
     }
 
+    //#region Search-related
     public List<Branch> sortMoves(List<Branch> toSort){
 
         // Killer Branches are getting checked because these caused a cutoff in a sibling position.
@@ -237,7 +220,7 @@ public class Branch {
             double staticEval = child.evaluate();
 
             if (staticEval > startEval){
-                double eval = child.qMini(depth-1, alpha, beta);
+                double eval = -child.qMaxi(depth-1, -beta, -alpha);
                 if (eval >= beta)
                     return max;
                 if (eval > max)
@@ -253,99 +236,6 @@ public class Branch {
         this.children.clear();
 
         return max;
-    }
-
-    public double qMini(int depth, double alpha, double beta) {
-        double startEval = evaluate();
-        // byte[] kingPos = (position.isActiveWhite()) ? position.getKingPosWhite() : position.getKingPosBlack();
-
-        if (notDeeper) {
-            return startEval;
-        }
-        // If it's a leaf node, perform the evaluation directly
-        if (depth == 0) {
-            return startEval;
-        }
-
-        if (startEval <= alpha) {
-            return startEval;
-        }
-        if (beta > startEval) {
-            beta = startEval;
-        }
-
-        if (children.isEmpty()) {
-            this.generateCaptureChildren();
-            if (children.isEmpty()) {
-                return startEval;
-            }
-        }
-
-        double min = startEval;
-
-        List<Branch> branchesToCheck = this.children; // sortMoves(this.children);
-
-        for (Branch child : branchesToCheck) {
-            if (child.isMate())
-                continue;
-            if (EngineAlg.getWorthInt(child.move.getToPiece()) - EngineAlg.getWorthInt(child.move.getFromPiece()) < 0) {
-                continue;
-            }
-
-            position.playMove(child.getMove());
-            double staticEval = child.evaluate();
-
-            if (staticEval < startEval) {
-                double eval = child.qMaxi(depth - 1, alpha, beta);
-                if (eval <= alpha) {
-                    return min;
-                }
-                if (eval < min) {
-                    min = eval;
-                }
-                if (eval < beta) {
-                    beta = eval;
-                }
-            }
-            position.reverseMove(child.getMove());
-        }
-
-        return min;
-    }
-
-    public double qSearch(double alpha, double beta){
-        double al = alpha + 0; double be = beta + 0;
-        if (position.isActiveWhite()) {
-            double max = qMaxi(10, al, be);
-            this.children.clear();
-            return max;
-        }
-        else{
-            double min = qMini(10, al, be);
-            this.children.clear();
-            return min;
-        }
-    }
-
-    public double qSearch(double alpha, double beta, int d){
-        double al = alpha + 0; double be = beta + 0;
-        if (position.isActiveWhite()) {
-            double max = qMaxi(d, al, be);
-            this.children.clear();
-            return max;
-        }
-        else{
-            double min = qMini(d, al, be);
-            this.children.clear();
-            return min;
-        }
-    }
-
-    static final double NMP_MARGIN = 3;
-
-    private int reducedDepth(int d){
-        return Math.max(d-3,0);
-        //return Math.max(d/3, 0);
     }
 
     public double negaMax(double alpha, double beta, int depth, boolean checkPruning) {
@@ -478,7 +368,9 @@ public class Branch {
 
         return max;
     }
+    //#endregion
 
+    //#region Generate Children
     public void generateChildren() {
         // Generate the child branches based on all possible moves if no children exist
         if (children.isEmpty()) {
@@ -529,7 +421,9 @@ public class Branch {
             }
         }
     }
+    //#endregion
 
+    //#region Getters and Setters
     public double getEvaluation() {
         return evaluation;
     }
@@ -562,11 +456,52 @@ public class Branch {
         return Math.abs(this.evaluation) > MATE_THRES;
     }
 
-    public boolean isCuttoff() {
-        return isCuttoff;
+    public boolean isNMPCut() {
+        return isNMPCut;
     }
 
-    public void setCuttoff(boolean cuttoff) {
-        isCuttoff = cuttoff;
+    public void setNMPCut(boolean NMPCut) {
+        isNMPCut = NMPCut;
     }
+
+    public int getScore() {
+        return score;
+    }
+
+    public void setScore(int score) {
+        this.score = score;
+    }
+
+    public boolean isKiller() {
+        return isKiller;
+    }
+
+    public void setKiller(boolean killer) {
+        isKiller = killer;
+    }
+
+    public boolean isCapture() {
+        return isCapture;
+    }
+
+    public void setCapture(boolean capture) {
+        isCapture = capture;
+    }
+
+    public List<Move> getKillerMoves() {
+        return killerMoves;
+    }
+
+    public int getDepth() {
+        return depth;
+    }
+
+    public void setDepth(int depth) {
+        this.depth = depth;
+    }
+
+    public Branch getBestChild() {
+        return bestChild;
+    }
+    //#endregion
 }
